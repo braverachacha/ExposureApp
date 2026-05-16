@@ -1,10 +1,11 @@
+// clientServer/src/config.js
 export const CONFIG = Object.freeze({
   relay: {
     host: process.env.APEX_RELAY || 'relay.apextunnel.top',
     port: Number(process.env.APEX_RELAY_PORT) || 9000,
   },
   tls: {
-    enabled: process.env.APEX_TLS === 'true' || process.env.APEX_TLS === '1' || true,
+    enabled: process.env.APEX_TLS === 'true' || process.env.APEX_TLS === '1',
     caPath: process.env.APEX_TLS_CA || null,
   },
   local: {
