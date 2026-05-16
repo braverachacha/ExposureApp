@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-
+// clientServer/client.js
 import fs from 'fs';
 import os from 'os';
 import path from 'path';
@@ -14,7 +14,7 @@ import {
   getState, setInspectorPort,
 } from './src/cli.js';
 import {
-  getStoredToken, saveToken, saveSubdomain,
+  getStoredToken, saveToken,
   setPassword, updatePassword, updateToken,
   hasPassword, verifyPassword,
 } from './src/auth.js';
@@ -24,29 +24,20 @@ import { startInspector, stopInspector, logRequestToDb, storeBody } from './src/
 import { initDatabase } from './src/db/init.js';
 import { openDb } from './src/db/index.js';
 
-// ── MIGRATE OLD CONFIG ──
 const OLD_CONFIG_PATH = path.join(os.homedir(), '.apextunnel');
 
 async function migrateOldConfig() {
   if (!fs.existsSync(OLD_CONFIG_PATH)) return;
-
   try {
     const oldData = JSON.parse(fs.readFileSync(OLD_CONFIG_PATH, 'utf8'));
     console.log(`${C.warning}○${C.reset} Found old .apextunnel config, migrating to encrypted DB...`);
-
     if (oldData.token && typeof oldData.token === 'string') {
       await openDb();
       await saveToken(oldData.token, true);
-
-      if (oldData.subdomain) {
-        await saveSubdomain(oldData.subdomain);
-      }
-
       if (oldData.passwordHash && oldData.passwordSalt) {
         console.log(`${C.warning}○${C.reset} Password needs reset: run 'apex pass <password>'`);
       }
     }
-
     fs.unlinkSync(OLD_CONFIG_PATH);
     console.log(`${C.success}✔${C.reset} Migration complete. Old config removed.`);
   } catch (err) {
@@ -55,19 +46,14 @@ async function migrateOldConfig() {
   }
 }
 
-// ── DATABASE INITIALIZATION ──
 const dbInitResult = await initDatabase();
 if (dbInitResult.error) {
   console.error(`${C.error}✖${C.reset} Database initialization failed: ${dbInitResult.error}`);
   process.exit(1);
 }
 
-try {
-  validateConfig();
-} catch (err) {
-  console.error(`${C.error}✖${C.reset} ${err.message}`);
-  process.exit(1);
-}
+try { validateConfig(); }
+catch (err) { console.error(`${C.error}✖${C.reset} ${err.message}`); process.exit(1); }
 
 const { relay, tls, local, app } = CONFIG;
 
@@ -102,67 +88,29 @@ const HELP = `
 const argv = process.argv.slice(2);
 const [cmd = ''] = argv;
 
-if (!cmd || cmd === 'help' || cmd === '--help' || cmd === '-h') {
-  process.stdout.write(HELP);
-  process.exit(0);
-}
-
-if (cmd === '--version' || cmd === '-v') {
-  console.log(`${C.brandBold}apex v${app.version}${C.reset}`);
-  process.exit(0);
-}
+if (!cmd || cmd === 'help' || cmd === '--help' || cmd === '-h') { process.stdout.write(HELP); process.exit(0); }
+if (cmd === '--version' || cmd === '-v') { console.log(`${C.brandBold}apex v${app.version}${C.reset}`); process.exit(0); }
 
 if (cmd === 'authtoken') {
   const rawToken = argv[1];
-  if (!rawToken || !rawToken.trim()) {
-    console.error(`${C.error}✖${C.reset} ${C.text}Usage:${C.reset} apex authtoken <token>`);
-    process.exit(1);
-  }
-  try {
-    await saveToken(rawToken);
-    console.log(`${C.success}✔${C.reset} Authtoken saved successfully.`);
-    process.exit(0);
-  } catch (err) {
-    const errorMsg = sanitizeErrorMessage(err.message);
-    console.error(`${C.error}✖${C.reset} ${errorMsg}`);
-    process.exit(1);
-  }
+  if (!rawToken || !rawToken.trim()) { console.error(`${C.error}✖${C.reset} ${C.text}Usage:${C.reset} apex authtoken <token>`); process.exit(1); }
+  try { await saveToken(rawToken); console.log(`${C.success}✔${C.reset} Authtoken saved successfully.`); process.exit(0); }
+  catch (err) { console.error(`${C.error}✖${C.reset} ${sanitizeErrorMessage(err.message)}`); process.exit(1); }
 }
 
 if (cmd === 'new') {
   const subCmd = argv[1];
-  const value  = argv[2];
-
+  const value = argv[2];
   if (subCmd === 'token') {
-    if (!value || !value.trim()) {
-      console.error(`${C.error}✖${C.reset} ${C.text}Usage:${C.reset} apex new token <token>`);
-      process.exit(1);
-    }
-    try {
-      await updateToken(value.trim());
-      console.log(`${C.success}✔${C.reset} Token updated successfully.`);
-      process.exit(0);
-    } catch (err) {
-      console.error(`${C.error}✖${C.reset} ${err.message}`);
-      process.exit(1);
-    }
+    if (!value || !value.trim()) { console.error(`${C.error}✖${C.reset} ${C.text}Usage:${C.reset} apex new token <token>`); process.exit(1); }
+    try { await updateToken(value.trim()); console.log(`${C.success}✔${C.reset} Token updated successfully.`); process.exit(0); }
+    catch (err) { console.error(`${C.error}✖${C.reset} ${err.message}`); process.exit(1); }
   }
-
   if (subCmd === 'pass' || subCmd === 'password') {
-    if (!value || !value.trim()) {
-      console.error(`${C.error}✖${C.reset} ${C.text}Usage:${C.reset} apex new pass <password>`);
-      process.exit(1);
-    }
-    try {
-      await updatePassword(value.trim());
-      console.log(`${C.success}✔${C.reset} Password updated successfully.`);
-      process.exit(0);
-    } catch (err) {
-      console.error(`${C.error}✖${C.reset} ${err.message}`);
-      process.exit(1);
-    }
+    if (!value || !value.trim()) { console.error(`${C.error}✖${C.reset} ${C.text}Usage:${C.reset} apex new pass <password>`); process.exit(1); }
+    try { await updatePassword(value.trim()); console.log(`${C.success}✔${C.reset} Password updated successfully.`); process.exit(0); }
+    catch (err) { console.error(`${C.error}✖${C.reset} ${err.message}`); process.exit(1); }
   }
-
   console.error(`${C.error}✖${C.reset} Unknown 'new' subcommand: "${subCmd}"`);
   console.error(`   ${C.dim}Available: token, pass${C.reset}`);
   process.exit(1);
@@ -170,10 +118,7 @@ if (cmd === 'new') {
 
 if (cmd === 'pass' || cmd === 'password') {
   const rawPass = argv[1];
-  if (!rawPass || !rawPass.trim()) {
-    console.error(`${C.error}✖${C.reset} ${C.text}Usage:${C.reset} apex pass <password>`);
-    process.exit(1);
-  }
+  if (!rawPass || !rawPass.trim()) { console.error(`${C.error}✖${C.reset} ${C.text}Usage:${C.reset} apex pass <password>`); process.exit(1); }
   try {
     await setPassword(rawPass.trim());
     console.log(`${C.success}✔${C.reset} Password set successfully.`);
@@ -182,24 +127,15 @@ if (cmd === 'pass' || cmd === 'password') {
     if (err.message.includes('already set')) {
       console.error(`${C.error}✖${C.reset} ${err.message}`);
       console.error(`   ${C.dim}Run: apex new pass <password>${C.reset}`);
-    } else {
-      console.error(`${C.error}✖${C.reset} ${err.message}`);
-    }
+    } else { console.error(`${C.error}✖${C.reset} ${err.message}`); }
     process.exit(1);
   }
 }
 
 if (cmd === 'status') {
-  let stored = null;
-  let decryptionError = false;
-  try {
-    stored = await getStoredToken();
-  } catch (err) {
-    if (err.message.includes('DECRYPTION_FAILED')) {
-      decryptionError = true;
-    }
-  }
-
+  let stored = null, decryptionError = false;
+  try { stored = await getStoredToken(); }
+  catch (err) { if (err.message.includes('DECRYPTION_FAILED')) decryptionError = true; }
   if (decryptionError) {
     console.log(`${C.warning}○${C.reset} Encrypted token cannot be decrypted.`);
     console.log(`   ${C.dim}This usually means the database was moved to a different device.${C.reset}`);
@@ -212,54 +148,34 @@ if (cmd === 'status') {
     console.log(`${C.success}✔${C.reset} Token : ${C.text}${masked}${C.reset}`);
     console.log(`   ${C.dim}Relay : ${relay.host}:${relay.port} ${tls.enabled ? '(TLS)' : ''}${C.reset}`);
   }
-
   const passStatus = await hasPassword();
   console.log(`   ${C.dim}Password: ${passStatus ? 'Set' : 'Not set'}${C.reset}`);
-
-  if (dbInitResult.cleaned > 0) {
-    console.log(`   ${C.dim}DB cleanup: ${dbInitResult.cleaned} old rows removed${C.reset}`);
-  }
-  if (dbInitResult.migrated > 0) {
-    console.log(`   ${C.dim}Crypto migration: ${dbInitResult.migrated} value(s) encrypted${C.reset}`);
-  }
+  if (dbInitResult.cleaned > 0) console.log(`   ${C.dim}DB cleanup: ${dbInitResult.cleaned} old rows removed${C.reset}`);
+  if (dbInitResult.migrated > 0) console.log(`   ${C.dim}Crypto migration: ${dbInitResult.migrated} value(s) encrypted${C.reset}`);
   process.exit(0);
 }
 
 if (cmd !== 'http') {
   console.error(`${C.error}✖${C.reset} Unknown command: "${cmd}". Run: apex help`);
-  console.error(`\n${C.brandBold}Available commands:${C.reset}`);
-  console.error(`  ${C.text}http <port> [--subdomain <name>]${C.reset}`);
-  console.error(`  ${C.text}authtoken <token>${C.reset}`);
-  console.error(`  ${C.text}new token <token>${C.reset}`);
-  console.error(`  ${C.text}pass <password>${C.reset}`);
-  console.error(`  ${C.text}new pass <password>${C.reset}`);
-  console.error(`  ${C.text}status${C.reset}`);
-  console.error(`  ${C.text}help${C.reset}`);
   process.exit(1);
 }
 
 const { values, positionals } = parseArgs({
   args: argv.slice(1),
-  options: {
-    subdomain: { type: 'string', default: '' },
-  },
-  allowPositionals: true,
-  strict: true,
+  options: { subdomain: { type: 'string', default: '' } },
+  allowPositionals: true, strict: true,
 });
 
-const rawPort  = positionals[0] ?? String(local.defaultPort);
+const rawPort = positionals[0] ?? String(local.defaultPort);
 const localPort = Number(rawPort);
-
 if (!Number.isInteger(localPort) || localPort < 1 || localPort > 65535) {
   console.error(`${C.error}✖${C.reset} Invalid port: "${rawPort}". Must be 1–65535.`);
   process.exit(1);
 }
 
-// ── Handle decryption failure with clear re-sync message ──
 let token;
-try {
-  token = await getStoredToken();
-} catch (err) {
+try { token = await getStoredToken(); }
+catch (err) {
   if (err.message.includes('DECRYPTION_FAILED')) {
     console.error(`${C.error}✖${C.reset} Cannot decrypt stored token.`);
     console.error(`   ${C.dim}The database was likely encrypted on a different device.${C.reset}`);
@@ -268,93 +184,55 @@ try {
   }
   throw err;
 }
-
-if (!token) {
-  console.error(`${C.error}✖${C.reset} No auth token found. Run: apex authtoken <token>`);
-  process.exit(1);
-}
+if (!token) { console.error(`${C.error}✖${C.reset} No auth token found. Run: apex authtoken <token>`); process.exit(1); }
 
 const activeRequests = new Map();
-
 setConnecting(String(localPort));
 
 const tunnel = new TunnelConnection({
-  host: relay.host,
-  port: relay.port,
-  token,
-  subdomain: values.subdomain || '',
-  localPort,
-  useTls: tls.enabled,
-  caPath: tls.caPath,
-  onRegistered: (info) => {
-    if (info.subdomain) saveSubdomain(info.subdomain);
-    setOnline({ ...info, port: String(localPort) });
-  },
+  host: relay.host, port: relay.port, token,
+  subdomain: values.subdomain || '', localPort,
+  useTls: tls.enabled, caPath: tls.caPath,
+  onRegistered: (info) => { setOnline({ ...info, port: String(localPort) }); },
   onError: (err) => {
-    if (err.type === 'reconnecting') {
-      setReconnecting();
-      return;
-    }
-    if (err.code === 'SUBDOMAIN_IN_USE') {
-      saveSubdomain('');
-      setReconnecting();
-      return;
-    }
+    if (err.type === 'reconnecting') { setReconnecting(); return; }
+    if (err.code === 'SUBDOMAIN_IN_USE') { setReconnecting(); return; }
     destroyUI();
-    const errorMsg = sanitizeErrorMessage(String(err.message ?? 'Unknown server error'));
-    console.error(`${C.error}✖${C.reset} ${errorMsg}`);
+    console.error(`${C.error}✖${C.reset} ${sanitizeErrorMessage(String(err.message ?? 'Unknown server error'))}`);
     process.exit(1);
   },
   onRequest: async (msg) => {
-    if (msg.type === 'request') {
-      await proxyRequest(msg);
-    } else if (msg.type === 'bodyChunk') {
+    if (msg.type === 'request') { await proxyRequest(msg); }
+    else if (msg.type === 'bodyChunk') {
       const req = activeRequests.get(msg.id);
       if (req && !req.bodyComplete) {
-        if (req.localReq) {
-          const writable = req.localReq.write(msg.data);
-          if (!writable) req.paused = true;
-        } else {
-          req.earlyChunks.push(msg.data);
-        }
+        if (req.localReq) { const writable = req.localReq.write(msg.data); if (!writable) req.paused = true; }
+        else { req.earlyChunks.push(msg.data); }
         if (!req.reqBodyTruncated) {
           req.reqBodySize += msg.data.length;
-          if (req.reqBodySize > 100 * 1024 * 1024) {
-            req.reqBodyTruncated = true;
-          } else {
-            req.reqBodyChunks.push(Buffer.from(msg.data));
-          }
+          if (req.reqBodySize > 100 * 1024 * 1024) req.reqBodyTruncated = true;
+          else req.reqBodyChunks.push(Buffer.from(msg.data));
         }
       }
     } else if (msg.type === 'bodyEnd') {
       const req = activeRequests.get(msg.id);
-      if (req) {
-        req.bodyComplete = true;
-        if (req.localReq) req.localReq.end();
-      }
+      if (req) { req.bodyComplete = true; if (req.localReq) req.localReq.end(); }
     }
   },
   logger: uiActive ? { error: () => {}, warn: () => {}, info: () => {} } : console,
 });
 
 tunnel.connect();
-
-setRestartCallback(() => {
-  tunnel.disconnect();
-  setTimeout(() => tunnel.connect(), 500);
-});
+setRestartCallback(() => { tunnel.disconnect(); setTimeout(() => tunnel.connect(), 500); });
 
 const inspectorPort = await startInspector(() => getState());
 if (inspectorPort) setInspectorPort(inspectorPort);
 
-const HOP_BY_HOP = new Set([
-  'connection', 'keep-alive', 'proxy-authenticate',
-  'proxy-authorization', 'te', 'trailers', 'transfer-encoding', 'upgrade',
-]);
+const HOP_BY_HOP = new Set(['connection', 'keep-alive', 'proxy-authenticate', 'proxy-authorization', 'te', 'trailers', 'transfer-encoding', 'upgrade']);
 
 function sanitizeErrorMessage(msg) {
   if (typeof msg !== 'string') return 'An error occurred';
-  msg = msg.replace(/[\/\\][^\s]*/g, '[path]');
+  msg = msg.replace(/[/\\][^\s]*/g, '[path]');
   msg = msg.replace(/\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}/g, '[ip]');
   if (msg.length > 200) msg = msg.substring(0, 197) + '...';
   return msg;
@@ -364,11 +242,7 @@ function normalizePath(urlPath) {
   if (typeof urlPath !== 'string') return '/';
   if (!urlPath.startsWith('/')) return '/';
   let decoded;
-  try {
-    decoded = decodeURIComponent(urlPath);
-  } catch {
-    return '/';
-  }
+  try { decoded = decodeURIComponent(urlPath); } catch { return '/'; }
   const segments = [];
   for (const segment of decoded.split('/')) {
     if (segment === '' || segment === '.') continue;
@@ -381,93 +255,55 @@ function normalizePath(urlPath) {
 function send502(requestId, method, safePath, localReq) {
   try { localReq?.destroy(); } catch {}
   const html = getClientErrorPage(localPort);
-  tunnel.sendResponseStart(requestId, 502, {
-    'content-type': 'text/html',
-    'content-length': String(Buffer.byteLength(html)),
-  }, true);
+  tunnel.sendResponseStart(requestId, 502, { 'content-type': 'text/html', 'content-length': String(Buffer.byteLength(html)) }, true);
   tunnel.sendBodyChunk(requestId, Buffer.from(html));
   tunnel.sendBodyEnd(requestId);
-  logRequest(method, safePath, 502, 0, {
-    reqHeaders: {},
-    resHeaders: { 'content-type': 'text/html' },
-  });
+  logRequest(method, safePath, 502, 0, { reqHeaders: {}, resHeaders: { 'content-type': 'text/html' } });
 }
 
 async function finishLog(msg, safePath, status, duration, reqState) {
   const logData = {
-    time:        new Date().toISOString(),
-    method:      msg.method,
-    url:         safePath,
-    status,
-    duration,
-    reqHeaders:  msg.headers,
-    resHeaders:  reqState.resHeaders || {},
-    reqBodyPath: null,
-    resBodyPath: null,
-    reqBodySize: reqState.reqBodySize,
-    resBodySize: reqState.resBodySize,
+    time: new Date().toISOString(), method: msg.method, url: safePath, status, duration,
+    reqHeaders: msg.headers, resHeaders: reqState.resHeaders || {},
+    reqBodyPath: null, resBodyPath: null,
+    reqBodySize: reqState.reqBodySize, resBodySize: reqState.resBodySize,
   };
-
   if (reqState.reqBodyChunks.length > 0 && !reqState.reqBodyTruncated) {
     const stream = new Readable();
-    stream.push(Buffer.concat(reqState.reqBodyChunks));
-    stream.push(null);
+    stream.push(Buffer.concat(reqState.reqBodyChunks)); stream.push(null);
     await new Promise(resolve => {
       storeBody(stream, 100 * 1024 * 1024, (err, _size, _truncated, filePath) => {
-        if (!err && filePath) logData.reqBodyPath = filePath;
-        resolve();
+        if (!err && filePath) logData.reqBodyPath = filePath; resolve();
       });
     });
   }
-
   if (reqState.resBodyChunks.length > 0 && !reqState.resBodyTruncated) {
     const stream = new Readable();
-    stream.push(Buffer.concat(reqState.resBodyChunks));
-    stream.push(null);
+    stream.push(Buffer.concat(reqState.resBodyChunks)); stream.push(null);
     await new Promise(resolve => {
       storeBody(stream, 100 * 1024 * 1024, (err, _size, _truncated, filePath) => {
-        if (!err && filePath) logData.resBodyPath = filePath;
-        resolve();
+        if (!err && filePath) logData.resBodyPath = filePath; resolve();
       });
     });
   }
-
-  logRequest(msg.method, safePath, status, duration, {
-    reqHeaders: msg.headers,
-    resHeaders: reqState.resHeaders || {},
-  });
+  logRequest(msg.method, safePath, status, duration, { reqHeaders: msg.headers, resHeaders: reqState.resHeaders || {} });
   await logRequestToDb(logData);
 }
 
 async function proxyRequest(msg) {
   const reqState = {
-    bodyComplete:      !msg.bodyExpected,
-    localReq:          null,
-    earlyChunks:       [],
-    paused:            false,
-    responseStarted:   false,
-    timedOut:          false,
-    reqBodyChunks:     [],
-    reqBodySize:       0,
-    reqBodyTruncated:  false,
-    resBodyChunks:     [],
-    resBodySize:       0,
-    resBodyTruncated:  false,
-    resHeaders:        {},
+    bodyComplete: !msg.bodyExpected, localReq: null, earlyChunks: [], paused: false,
+    responseStarted: false, timedOut: false, reqBodyChunks: [], reqBodySize: 0, reqBodyTruncated: false,
+    resBodyChunks: [], resBodySize: 0, resBodyTruncated: false, resHeaders: {},
   };
   activeRequests.set(msg.id, reqState);
-
   const safePath = normalizePath(msg.url);
-
   reqState.timeout = setTimeout(() => {
     if (!activeRequests.has(msg.id)) return;
     reqState.timedOut = true;
     activeRequests.delete(msg.id);
-    if (!reqState.responseStarted) {
-      send502(msg.id, msg.method, safePath, reqState.localReq);
-    } else {
-      try { reqState.localReq?.destroy(); } catch {}
-    }
+    if (!reqState.responseStarted) send502(msg.id, msg.method, safePath, reqState.localReq);
+    else { try { reqState.localReq?.destroy(); } catch {} }
   }, 60000);
 
   const headers = {};
@@ -475,25 +311,15 @@ async function proxyRequest(msg) {
     if (!HOP_BY_HOP.has(key.toLowerCase())) headers[key] = val;
   }
   headers['host'] = `${local.host}:${localPort}`;
-
   const startTime = performance.now();
 
-  const localReq = http.request({
-    hostname: local.host,
-    port:     localPort,
-    path:     safePath,
-    method:   msg.method,
-    headers,
-  }, (localRes) => {
+  const localReq = http.request({ hostname: local.host, port: localPort, path: safePath, method: msg.method, headers }, (localRes) => {
     if (reqState.timedOut) { localRes.destroy(); return; }
-
     const noBodyStatus = [204, 304];
     const hasBody = !noBodyStatus.includes(localRes.statusCode) && msg.method !== 'HEAD';
-
     reqState.resHeaders = localRes.headers;
     tunnel.sendResponseStart(msg.id, localRes.statusCode, localRes.headers, hasBody);
     reqState.responseStarted = true;
-
     if (!hasBody) {
       const duration = Math.round(performance.now() - startTime);
       finishLog(msg, safePath, localRes.statusCode, duration, reqState);
@@ -501,19 +327,14 @@ async function proxyRequest(msg) {
       activeRequests.delete(msg.id);
       return;
     }
-
     localRes.on('data', (chunk) => {
       tunnel.sendBodyChunk(msg.id, chunk);
       if (!reqState.resBodyTruncated) {
         reqState.resBodySize += chunk.length;
-        if (reqState.resBodySize > 100 * 1024 * 1024) {
-          reqState.resBodyTruncated = true;
-        } else {
-          reqState.resBodyChunks.push(Buffer.from(chunk));
-        }
+        if (reqState.resBodySize > 100 * 1024 * 1024) reqState.resBodyTruncated = true;
+        else reqState.resBodyChunks.push(Buffer.from(chunk));
       }
     });
-
     localRes.on('end', () => {
       if (reqState.timedOut) return;
       const duration = Math.round(performance.now() - startTime);
@@ -522,7 +343,6 @@ async function proxyRequest(msg) {
       clearTimeout(reqState.timeout);
       activeRequests.delete(msg.id);
     });
-
     localRes.on('error', (err) => {
       if (reqState.timedOut) return;
       console.error(`[PROXY] Response stream error: ${err.message}`);
@@ -535,17 +355,11 @@ async function proxyRequest(msg) {
 
   reqState.localReq = localReq;
   localReq.on('drain', () => { reqState.paused = false; });
-
   if (reqState.earlyChunks.length > 0) {
-    for (const chunk of reqState.earlyChunks) {
-      const writable = localReq.write(chunk);
-      if (!writable) reqState.paused = true;
-    }
+    for (const chunk of reqState.earlyChunks) { const writable = localReq.write(chunk); if (!writable) reqState.paused = true; }
     reqState.earlyChunks = [];
   }
-
   if (reqState.bodyComplete) localReq.end();
-
   localReq.on('error', (err) => {
     if (reqState.timedOut) return;
     console.error(`[PROXY ERROR] ${msg.method} ${safePath} -> ${local.host}:${localPort}: ${err.message}`);
@@ -556,12 +370,6 @@ async function proxyRequest(msg) {
   });
 }
 
-const gracefulExit = () => {
-  stopInspector();
-  tunnel.disconnect();
-  destroyUI();
-  process.exit(0);
-};
-
-process.on('SIGINT',  gracefulExit);
+const gracefulExit = () => { stopInspector(); tunnel.disconnect(); destroyUI(); process.exit(0); };
+process.on('SIGINT', gracefulExit);
 process.on('SIGTERM', gracefulExit);
