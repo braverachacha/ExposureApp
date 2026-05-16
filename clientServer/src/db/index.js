@@ -1,305 +1,187 @@
+// clientServer/src/db/index.js
+/**
+ * LowDB-based storage with two separate files:
+ *  - ~/.apextunnel.db          → Encrypted config (token, password, etc.)
+ *  - ~/.apextunnel.requests.json → Plain request/response log
+ */
+
 import fs from 'fs';
 import os from 'os';
 import path from 'path';
-import initSqlJs from 'sql.js';
-import { encrypt, decrypt, isEncrypted } from './crypto.js';
+import { Low } from 'lowdb';
+import { DataFile, JSONFile } from 'lowdb/node';
+import { encrypt, decrypt } from './crypto.js';
 
+// ── Paths ──
 export const DB_PATH = path.join(os.homedir(), '.apextunnel.db');
+export const REQUESTS_DB_PATH = path.join(os.homedir(), '.apextunnel.requests.json');
 
-let dbInstance = null;
-let SQL = null;
+// ── Encrypted DataFile Adapter ──
+// Uses lowdb's DataFile with custom parse/stringify for AES-256-GCM encryption.
+// The file on disk is an encrypted blob, not readable JSON.
+const encryptedAdapter = new DataFile(DB_PATH, {
+  parse: (text) => {
+    if (!text || !text.trim()) return null;
+    try {
+      const json = decrypt(text);
+      return JSON.parse(json);
+    } catch (err) {
+      throw new Error(
+        `DECRYPTION_FAILED: ${err.message}. ` +
+        `The database was encrypted on a different device. ` +
+        `Run "apex authtoken <token>" to re-sync.`
+      );
+    }
+  },
+  stringify: (data) => {
+    const json = JSON.stringify(data);
+    return encrypt(json);
+  },
+});
+
+// ── Plain JSON Adapter for requests ──
+const requestsAdapter = new JSONFile(REQUESTS_DB_PATH);
+
+// ── Database Instances ──
+let configDb = null;
+let requestsDb = null;
+
+// Default data shapes
+const defaultConfigData = { config: {} };
+const defaultRequestsData = { requests: [] };
 
 export async function openDb() {
-  await closeDb();
+  if (configDb) return configDb;
 
-  if (!SQL) {
-    SQL = await initSqlJs();
+  // Encrypted config DB
+  configDb = new Low(encryptedAdapter, defaultConfigData);
+  await configDb.read();
+  if (!configDb.data) {
+    configDb.data = structuredClone(defaultConfigData);
+    await configDb.write();
   }
 
-  let db;
-  if (fs.existsSync(DB_PATH)) {
-    const data = fs.readFileSync(DB_PATH);
-    db = new SQL.Database(data);
-  } else {
-    db = new SQL.Database();
-    createSchema(db);
-    const data = db.export();
-    fs.writeFileSync(DB_PATH, Buffer.from(data), { mode: 0o600 });
+  // Plain requests DB
+  requestsDb = new Low(requestsAdapter, defaultRequestsData);
+  await requestsDb.read();
+  if (!requestsDb.data) {
+    requestsDb.data = structuredClone(defaultRequestsData);
+    await requestsDb.write();
   }
 
-  dbInstance = wrapSqlJs(db);
-  return dbInstance;
+  return configDb;
 }
 
 export async function openPlainDb() {
   return openDb();
 }
 
-function createSchema(db) {
-  db.run(`
-    CREATE TABLE IF NOT EXISTS config (
-      key TEXT PRIMARY KEY,
-      value TEXT NOT NULL
-    );
-    CREATE TABLE IF NOT EXISTS requests (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      time TEXT NOT NULL,
-      method TEXT NOT NULL,
-      url TEXT NOT NULL,
-      status INTEGER,
-      duration INTEGER,
-      req_headers TEXT,
-      res_headers TEXT,
-      req_body_path TEXT,
-      res_body_path TEXT,
-      req_body_size INTEGER DEFAULT 0,
-      res_body_size INTEGER DEFAULT 0,
-      created_at INTEGER DEFAULT (strftime('%s', 'now'))
-    );
-    CREATE INDEX IF NOT EXISTS idx_requests_created ON requests(created_at);
-    CREATE TABLE IF NOT EXISTS rate_limits (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      identifier TEXT NOT NULL UNIQUE,
-      count INTEGER DEFAULT 1,
-      next_allowed INTEGER NOT NULL,
-      last_attempt INTEGER NOT NULL,
-      created_at INTEGER DEFAULT (strftime('%s', 'now'))
-    );
-  `);
-}
-
-function wrapSqlJs(db) {
-  return {
-    _db: db,
-    exec(sql) { return this._db.run(sql); },
-    schema: {
-      hasTable: (tableName) => {
-        const result = db.exec(
-          `SELECT name FROM sqlite_master WHERE type='table' AND name='${tableName}'`
-        );
-        return result.length > 0 && result[0].values.length > 0;
-      },
-    },
-    select(...columns) { return queryBuilder(this, 'select', columns); },
-    insert(data)       { return queryBuilder(this, 'insert', null, data); },
-    where(conditions)  { return queryBuilder(this, 'where', null, null, conditions); },
-    orderBy(column, direction) {
-      return queryBuilder(this, 'orderBy', null, null, null, { column, direction });
-    },
-    limit(n)  { return queryBuilder(this, 'limit', null, null, null, null, n); },
-    del()     { return queryBuilder(this, 'del'); },
-    raw(sql)  { return { toSQL: () => sql }; },
-  };
-}
-
-function queryBuilder(wrapper, type, columns, data, conditions, order, limitVal) {
-  const builder = {
-    _wrapper:     wrapper,
-    _type:        type,
-    _columns:     columns,
-    _data:        data,
-    _conditions:  conditions,
-    _order:       order,
-    _limit:       limitVal,
-    _table:       null,
-    _whereClause: null,
-
-    from(table)          { this._table = table; return this; },
-    into(table)          { this._table = table; return this; },
-    where(conditions)    { this._whereClause = conditions; return this; },
-    orderBy(column, dir) { this._order = { column, direction: dir }; return this; },
-    limit(n)             { this._limit = n; return this; },
-    onConflict(_key)     { return { merge: () => this }; },
-
-    run() {
-      this._wrapper._db.run(this._buildSql());
-      _schedulePersist();
-      return { changes: 1 };
-    },
-
-    first() {
-      const result = this._wrapper._db.exec(this._buildSql());
-      if (!result.length || !result[0].values.length) return null;
-      const obj = {};
-      result[0].columns.forEach((c, i) => { obj[c] = result[0].values[0][i]; });
-      return obj;
-    },
-
-    all() {
-      const result = this._wrapper._db.exec(this._buildSql());
-      if (!result.length) return [];
-      return result[0].values.map(v => {
-        const obj = {};
-        result[0].columns.forEach((c, i) => { obj[c] = v[i]; });
-        return obj;
-      });
-    },
-
-    then(resolve, reject) {
-      try { resolve(this.all()); } catch (e) { reject(e); }
-    },
-
-    _buildSql() {
-      let sql = '';
-      if (this._type === 'select') {
-        sql = `SELECT ${this._columns?.length ? this._columns.join(', ') : '*'} FROM ${this._table}`;
-      } else if (this._type === 'insert') {
-        const keys = Object.keys(this._data);
-        const vals = keys.map(k => {
-          const v = this._data[k];
-          if (v === null || v === undefined) return 'NULL';
-          if (typeof v === 'number') return v;
-          return `'${String(v).replace(/'/g, "''")}'`;
-        });
-        sql = `INSERT INTO ${this._table} (${keys.join(', ')}) VALUES (${vals.join(', ')})`;
-      } else if (this._type === 'del') {
-        sql = `DELETE FROM ${this._table}`;
-      }
-      if (this._whereClause) {
-        const conds = Object.entries(this._whereClause).map(([k, v]) => {
-          if (v === null || v === undefined) return `${k} IS NULL`;
-          if (typeof v === 'number') return `${k} = ${v}`;
-          return `${k} = '${String(v).replace(/'/g, "''")}'`;
-        });
-        sql += ` WHERE ${conds.join(' AND ')}`;
-      }
-      if (this._order) {
-        sql += ` ORDER BY ${this._order.column} ${this._order.direction === 'desc' ? 'DESC' : 'ASC'}`;
-      }
-      if (this._limit) sql += ` LIMIT ${this._limit}`;
-      return sql;
-    },
-  };
-  return builder;
-}
-
-let _persistTimer = null;
-function _schedulePersist() {
-  if (_persistTimer) return;
-  _persistTimer = setTimeout(() => {
-    _persistTimer = null;
-    if (!dbInstance) return;
-    try {
-      const data = Buffer.from(dbInstance._db.export());
-      fs.writeFileSync(DB_PATH, data, { mode: 0o600 });
-    } catch (err) {
-      console.error('[DB] Auto-persist failed:', err.message);
-    }
-  }, 500);
-}
-
 export function getDb() {
-  if (!dbInstance) throw new Error('Database not initialized. Call openDb() first.');
-  const wrapper = dbInstance;
-  const callable = (table) => {
-    const b = queryBuilder(wrapper, 'select', null);
-    b._table = table;
-    return b;
-  };
-  return new Proxy(callable, {
-    get(_target, prop) { return wrapper[prop]; },
-  });
+  if (!configDb) throw new Error('Database not initialized. Call openDb() first.');
+  return configDb;
+}
+
+export function getRequestsDb() {
+  if (!requestsDb) throw new Error('Database not initialized. Call openDb() first.');
+  return requestsDb;
 }
 
 export async function persistDb() {
-  if (!dbInstance) return;
-  const data = Buffer.from(dbInstance._db.export());
-  fs.writeFileSync(DB_PATH, data, { mode: 0o600 });
+  if (configDb) await configDb.write();
+  if (requestsDb) await requestsDb.write();
 }
 
 export async function closeDb() {
-  if (dbInstance) {
-    await persistDb();
-    dbInstance._db.close();
-    dbInstance = null;
-  }
+  await persistDb();
+  configDb = null;
+  requestsDb = null;
 }
 
 // ── Encrypted Config API ──
 
-/**
- * Read a config value. Automatically decrypts if encrypted.
- * Returns null if key not found.
- * Throws DECRYPTION_FAILED if hardware changed (caller must handle).
- */
 export async function getEncryptedConfig(key) {
-  const db = getDb();
-  const result = db._db.exec(`SELECT value FROM config WHERE key = '${sqlEscape(key)}'`);
-  if (!result.length || !result[0].values.length) return null;
-  const raw = result[0].values[0][0];
-
-  if (!isEncrypted(raw)) {
-    // Legacy plaintext — return as-is, but caller should re-encrypt
-    return raw;
-  }
-
-  return decrypt(raw);
+  await openDb();
+  const value = configDb.data.config[key];
+  if (value === undefined || value === null) return null;
+  return value;
 }
 
-/**
- * Write a config value, always encrypting it.
- */
 export async function setEncryptedConfig(key, value) {
-  const db = getDb();
-  const encrypted = encrypt(value);
-  const existing = db._db.exec(`SELECT 1 FROM config WHERE key = '${sqlEscape(key)}'`);
-  if (existing.length && existing[0].values.length) {
-    db._db.exec(`UPDATE config SET value = '${sqlEscape(encrypted)}' WHERE key = '${sqlEscape(key)}'`);
-  } else {
-    db._db.exec(`INSERT INTO config (key, value) VALUES ('${sqlEscape(key)}', '${sqlEscape(encrypted)}')`);
-  }
+  await openDb();
+  configDb.data.config[key] = value;
+  await configDb.write();
 }
 
-/**
- * Delete a config key.
- */
 export async function deleteEncryptedConfig(key) {
-  const db = getDb();
-  db._db.exec(`DELETE FROM config WHERE key = '${sqlEscape(key)}'`);
+  await openDb();
+  delete configDb.data.config[key];
+  await configDb.write();
 }
 
-/**
- * Check if a config key exists (encrypted or not).
- */
 export async function hasConfigKey(key) {
-  const db = getDb();
-  const result = db._db.exec(`SELECT 1 FROM config WHERE key = '${sqlEscape(key)}'`);
-  return result.length > 0 && result[0].values.length > 0;
+  await openDb();
+  return key in configDb.data.config;
 }
 
 /**
- * Re-encrypt all plaintext config values in the database.
- * Call this once after upgrading to encrypted storage.
- * Returns count of migrated keys.
+ * Re-encrypt all plaintext config values.
+ * With LowDB, values are already stored as encrypted strings,
+ * so this mainly serves as a migration helper from the old sql.js format.
  */
 export async function migratePlaintextConfig() {
-  const db = getDb();
-  const result = db._db.exec(`SELECT key, value FROM config`);
-  if (!result.length || !result[0].values.length) return 0;
-
+  await openDb();
   let migrated = 0;
-  for (const [key, value] of result[0].values) {
-    if (!isEncrypted(value)) {
-      await setEncryptedConfig(key, value);
+  for (const [key, value] of Object.entries(configDb.data.config)) {
+    if (typeof value === 'string' && !value.startsWith('v1:')) {
+      configDb.data.config[key] = encrypt(value);
       migrated++;
     }
   }
   if (migrated > 0) {
-    await persistDb();
-    console.log(`[CRYPTO] Migrated ${migrated} plaintext config value(s) to encrypted storage.`);
+    await configDb.write();
+    console.log(`[CRYPTO] Migrated ${migrated} plaintext config value(s).`);
   }
   return migrated;
 }
 
-function sqlEscape(str) {
-  return String(str).replace(/'/g, "''");
+// ── Request Log API ──
+
+export async function insertRequest(reqData) {
+  await openDb();
+  const entry = {
+    id: Date.now() + '-' + Math.random().toString(36).slice(2, 9),
+    time: reqData.time,
+    method: reqData.method,
+    url: reqData.url,
+    status: reqData.status ?? null,
+    duration: reqData.duration ?? null,
+    reqHeaders: reqData.reqHeaders ?? {},
+    resHeaders: reqData.resHeaders ?? {},
+    reqBodyPath: reqData.reqBodyPath ?? null,
+    resBodyPath: reqData.resBodyPath ?? null,
+    reqBodySize: reqData.reqBodySize ?? 0,
+    resBodySize: reqData.resBodySize ?? 0,
+    createdAt: Math.floor(Date.now() / 1000),
+  };
+  requestsDb.data.requests.push(entry);
+  await requestsDb.write();
+  return entry;
 }
 
-process.on('exit', () => {
-  if (dbInstance) {
-    try {
-      const data = Buffer.from(dbInstance._db.export());
-      fs.writeFileSync(DB_PATH, data, { mode: 0o600 });
-    } catch {}
-  }
+export async function getRecentRequests(limit = 100) {
+  await openDb();
+  return requestsDb.data.requests.slice().sort((a, b) => b.createdAt - a.createdAt).slice(0, limit);
+}
+
+export async function deleteOldRequests(cutoffTimestamp) {
+  await openDb();
+  const before = requestsDb.data.requests.length;
+  requestsDb.data.requests = requestsDb.data.requests.filter(r => r.createdAt >= cutoffTimestamp);
+  const deleted = before - requestsDb.data.requests.length;
+  if (deleted > 0) await requestsDb.write();
+  return deleted;
+}
+
+process.on('exit', async () => {
+  try { await persistDb(); } catch {}
 });
