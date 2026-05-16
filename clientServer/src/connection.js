@@ -1,3 +1,4 @@
+//  clientServer/src/connection.js
 /**
  * Connection manager with TLS, heartbeat, reconnection, and streaming
  */

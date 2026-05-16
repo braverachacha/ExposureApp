@@ -1,3 +1,4 @@
+//  clientServer/src/protocol.js
 const MAX_FRAME_SIZE = 16 * 1024 * 1024;
 const MAX_ID_LENGTH = 256;
 

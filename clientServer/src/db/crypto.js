@@ -1,3 +1,4 @@
+//  clientServer/src/db/crypto.js
 import { createHash, randomBytes, createCipheriv, createDecipheriv, scryptSync } from 'crypto';
 import fs from 'fs';
 import os from 'os';
