@@ -98,17 +98,26 @@ export async function closeDb() {
 }
 
 // ── Encrypted Config API ──
+// Each value is individually encrypted with AES-256-GCM (value-level),
+// AND the entire JSON file is encrypted (adapter-level).
 
 export async function getEncryptedConfig(key) {
   await openDb();
-  const value = configDb.data.config[key];
-  if (value === undefined || value === null) return null;
-  return value;
+  const encryptedValue = configDb.data.config[key];
+  if (encryptedValue === undefined || encryptedValue === null) return null;
+
+  // If value is not in our encrypted format, it's plaintext (legacy or corrupted)
+  if (typeof encryptedValue !== 'string' || !encryptedValue.startsWith('v1:')) {
+    return encryptedValue;
+  }
+
+  return decrypt(encryptedValue);
 }
 
 export async function setEncryptedConfig(key, value) {
   await openDb();
-  configDb.data.config[key] = value;
+  const encrypted = encrypt(value);
+  configDb.data.config[key] = encrypted;
   await configDb.write();
 }
 
@@ -124,14 +133,16 @@ export async function hasConfigKey(key) {
 }
 
 /**
- * Re-encrypt all plaintext config values.
- * With LowDB, values are already stored as encrypted strings,
- * so this mainly serves as a migration helper from the old sql.js format.
+ * Migrate old plaintext or double-encrypted values.
+ * - Old sql.js DB: values were individually encrypted (v1:...)
+ * - New lowdb DB: adapter encrypts whole file, values should also be individually encrypted
+ * This ensures values are encrypted at both levels.
  */
 export async function migratePlaintextConfig() {
   await openDb();
   let migrated = 0;
   for (const [key, value] of Object.entries(configDb.data.config)) {
+    // If value looks like plaintext (not our encrypted format), encrypt it
     if (typeof value === 'string' && !value.startsWith('v1:')) {
       configDb.data.config[key] = encrypt(value);
       migrated++;
