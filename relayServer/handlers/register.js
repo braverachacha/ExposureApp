@@ -34,7 +34,9 @@ export async function handleRegister(socket, msg, connectionManager, rateLimiter
     safeWrite(socket, encodeJson({
       type: 'error',
       code: 'VERSION_MISMATCH',
-      message: `Version ${clientVer} is not supported. Please use a client compatible with v2.x.x.`,
+      message: `Version ${clientVer} is not supported. Please use a client compatible with v2.x.x. \n
+      Visit https://github.com/braverachacha/ExposureApp/releases to get the latest version.
+      `,
     }));
     socket.end();
     return { success: false };

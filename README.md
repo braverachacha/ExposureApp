@@ -35,7 +35,7 @@ Pure Node.js — `net` `tls` `http` `crypto`. No npm packages on the relay. Clie
 ### 1. Relay — Run on your VPS
 
 ```bash
-cd ExposureApp-v2/relayServer
+cd ExposureApp/relayServer
 
 # 1. Generate TLS certificates for secure tunneling
 openssl req -x509 -newkey rsa:4096 -keyout key.pem -out cert.pem -sha256 -days 365 -nodes
@@ -53,7 +53,7 @@ pnpm dev
 
 **Option A — Download binary** (Linux / macOS / Windows)
 
-Grab the binary for your platform from the releases page, then:
+Grab the binary for your platform from the <a href="https://github.com/braverachacha/ExposureApp/releases">releases page, then:</a>
 
 ```bash
 # Linux/macOS — make it executable and move to PATH
@@ -64,7 +64,7 @@ sudo mv apex-linux-arm64 /usr/local/bin/apex
 **Option B — Run from source** (Termux / Android or any Node.js environment)
 
 ```bash
-cd ExposureApp-v2/clientServer
+cd ExposureApp/clientServer
 pnpm install
 pnpm run bundle          # builds dist/bundle.cjs
 
