@@ -201,6 +201,19 @@ ExposureApp-v2/
         └── tls.js
 ```
 
+## N/B
+
+Note for Windows Users: The Windows binary is currently unsigned. If Windows SmartScreen displays a warning, click "More info" and then ***"Run anyway"*** to proceed with the installation.
+
+Make sure the downloaded file is executable by running
+
+```bash
+chmod +x apex-win-arm64
+```
+
+***Happy codding and stay safe***
+
+
 ## License
 
 ISC
