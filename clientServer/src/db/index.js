@@ -1,10 +1,3 @@
-// clientServer/src/db/index.js
-/**
- * LowDB-based storage with two separate files:
- *  - ~/.apextunnel.db          → Encrypted config (token, password, etc.)
- *  - ~/.apextunnel.requests.json → Plain request/response log
- */
-
 import fs from 'fs';
 import os from 'os';
 import path from 'path';
@@ -12,13 +5,9 @@ import { Low } from 'lowdb';
 import { DataFile, JSONFile } from 'lowdb/node';
 import { encrypt, decrypt } from './crypto.js';
 
-// ── Paths ──
 export const DB_PATH = path.join(os.homedir(), '.apextunnel.db');
 export const REQUESTS_DB_PATH = path.join(os.homedir(), '.apextunnel.requests.json');
 
-// ── Encrypted DataFile Adapter ──
-// Uses lowdb's DataFile with custom parse/stringify for AES-256-GCM encryption.
-// The file on disk is an encrypted blob, not readable JSON.
 const encryptedAdapter = new DataFile(DB_PATH, {
   parse: (text) => {
     if (!text || !text.trim()) return null;
@@ -28,7 +17,6 @@ const encryptedAdapter = new DataFile(DB_PATH, {
     } catch (err) {
       throw new Error(
         `DECRYPTION_FAILED: ${err.message}. ` +
-        `The database was encrypted on a different device. ` +
         `Run "apex authtoken <token>" to re-sync.`
       );
     }
@@ -39,21 +27,17 @@ const encryptedAdapter = new DataFile(DB_PATH, {
   },
 });
 
-// ── Plain JSON Adapter for requests ──
 const requestsAdapter = new JSONFile(REQUESTS_DB_PATH);
 
-// ── Database Instances ──
 let configDb = null;
 let requestsDb = null;
 
-// Default data shapes
 const defaultConfigData = { config: {} };
 const defaultRequestsData = { requests: [] };
 
 export async function openDb() {
   if (configDb) return configDb;
 
-  // Encrypted config DB
   configDb = new Low(encryptedAdapter, defaultConfigData);
   await configDb.read();
   if (!configDb.data) {
@@ -61,7 +45,6 @@ export async function openDb() {
     await configDb.write();
   }
 
-  // Plain requests DB
   requestsDb = new Low(requestsAdapter, defaultRequestsData);
   await requestsDb.read();
   if (!requestsDb.data) {
@@ -97,20 +80,13 @@ export async function closeDb() {
   requestsDb = null;
 }
 
-// ── Encrypted Config API ──
-// Each value is individually encrypted with AES-256-GCM (value-level),
-// AND the entire JSON file is encrypted (adapter-level).
-
 export async function getEncryptedConfig(key) {
   await openDb();
   const encryptedValue = configDb.data.config[key];
   if (encryptedValue === undefined || encryptedValue === null) return null;
-
-  // If value is not in our encrypted format, it's plaintext (legacy or corrupted)
   if (typeof encryptedValue !== 'string' || !encryptedValue.startsWith('v1:')) {
     return encryptedValue;
   }
-
   return decrypt(encryptedValue);
 }
 
@@ -132,17 +108,10 @@ export async function hasConfigKey(key) {
   return key in configDb.data.config;
 }
 
-/**
- * Migrate old plaintext or double-encrypted values.
- * - Old sql.js DB: values were individually encrypted (v1:...)
- * - New lowdb DB: adapter encrypts whole file, values should also be individually encrypted
- * This ensures values are encrypted at both levels.
- */
 export async function migratePlaintextConfig() {
   await openDb();
   let migrated = 0;
   for (const [key, value] of Object.entries(configDb.data.config)) {
-    // If value looks like plaintext (not our encrypted format), encrypt it
     if (typeof value === 'string' && !value.startsWith('v1:')) {
       configDb.data.config[key] = encrypt(value);
       migrated++;
@@ -154,8 +123,6 @@ export async function migratePlaintextConfig() {
   }
   return migrated;
 }
-
-// ── Request Log API ──
 
 export async function insertRequest(reqData) {
   await openDb();
