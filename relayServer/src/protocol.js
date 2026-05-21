@@ -1,3 +1,5 @@
+// relayServer/src/protocol.js 
+
 const MAX_FRAME_SIZE = 16 * 1024 * 1024; // 16MB
 const MAX_ID_LENGTH = 256;
 

@@ -1,3 +1,5 @@
+// relayServer/src/connectionManager.js
+
 /**
  * Connection Manager with heartbeat and automatic cleanup
  */

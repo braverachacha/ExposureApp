@@ -1,3 +1,5 @@
+// relayServer/src/handlers/register.js
+
 import logger from '../logger.js';
 import semver from 'semver';
 import { validateSubdomain } from '../src/security.js';
