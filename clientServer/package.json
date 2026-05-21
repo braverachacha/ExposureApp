@@ -42,6 +42,7 @@
   },
   "dependencies": {
     "blessed": "^0.1.81",
+    "dotenv": "^17.4.2",
     "lowdb": "^7.0.1"
   }
 }

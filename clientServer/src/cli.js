@@ -1,3 +1,5 @@
+// clientServer/src/cli.js 
+ 
 import blessed from 'blessed';
 import { exec } from 'child_process';
 import { BLESSED as T } from './colors.js';
