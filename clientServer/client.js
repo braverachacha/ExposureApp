@@ -1,5 +1,7 @@
 #!/usr/bin/env node
 // clientServer/client.js
+
+import 'dotenv/config';
 import fs from 'fs';
 import os from 'os';
 import path from 'path';
@@ -193,6 +195,7 @@ const tunnel = new TunnelConnection({
   host: relay.host, port: relay.port, token,
   subdomain: values.subdomain || '', localPort,
   useTls: tls.enabled, caPath: tls.caPath,
+  detectTls: tls.detectMode,
   onRegistered: (info) => { setOnline({ ...info, port: String(localPort) }); },
   onError: (err) => {
     if (err.type === 'reconnecting') { setReconnecting(); return; }
