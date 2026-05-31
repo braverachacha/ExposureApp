@@ -19,7 +19,7 @@
     "cross-platform",
     "cli-tool"
   ],
-  "main": "dist/bundle.mjs",
+  "main": "dist/bundle.cjs",
   "type": "module",
   "bin": {
     "apex": "./client.js"
@@ -27,22 +27,35 @@
   "scripts": {
     "start": "node client.js",
     "dev": "nodemon client.js",
-    "bundle": "mkdir -p dist && esbuild client.js --bundle --platform=node --target=node18 --outfile=dist/bundle.mjs --format=esm --minify --legal-comments=none --tree-shaking=true --external:blessed --external:sql.js",
-    "build": "pnpm run bundle && nexe dist/bundle.mjs --target linux-x64-18.20.0 --output bin/apex-client-linux-x64",
-    "build:all": "pnpm run bundle && nexe dist/bundle.mjs --target linux-arm64-18.20.0 --output bin/apex-client-linux-arm64 && nexe dist/bundle.mjs --target linux-x64-18.20.0 --output bin/apex-client-linux-x64 && nexe dist/bundle.mjs --target windows-x64-18.20.0 --output bin/apex-client-win-x64.exe",
-    "build:termux": "pnpm run bundle && nexe dist/bundle.mjs --target linux-arm64-18.20.0 --output bin/apex-termux --build --verbose"
+    "bundle": "mkdir -p dist && esbuild client.js --bundle --platform=node --target=node18 --outfile=dist/bundle.cjs --format=cjs --minify --legal-comments=none --tree-shaking=true --external:blessed",
+    "build": "pnpm run bundle && pkg dist/bundle.cjs --targets node18-linux-x64 --output bin/apex-client-linux-x64",
+    "build:all": "pnpm run bundle && pkg dist/bundle.cjs --targets node18-linux-arm64,node18-linux-x64,node18-win-x64 --out bin/apex-client",
+    "build:termux": "pnpm run bundle && pkg dist/bundle.cjs --targets node18-linux-arm64 --output bin/apex-termux"
   },
   "author": "BraveraTech",
   "license": "ISC",
   "packageManager": "pnpm@10.33.0",
   "devDependencies": {
     "esbuild": "^0.25.0",
-    "nexe": "5.0.0-beta.4",
-    "nodemon": "^3.1.14"
+    "nodemon": "^3.1.14",
+    "pkg": "^5.8.1"
   },
   "dependencies": {
     "blessed": "^0.1.81",
-    "dotenv": "^17.4.2",
     "lowdb": "^7.0.1"
+  },
+  "pkg": {
+    "scripts": [
+      "dist/bundle.cjs"
+    ],
+    "assets": [
+      "node_modules/blessed/**/*"
+    ],
+    "targets": [
+      "node18-linux-x64",
+      "node18-linux-arm64",
+      "node18-win-x64"
+    ],
+    "outputPath": "bin"
   }
 }
