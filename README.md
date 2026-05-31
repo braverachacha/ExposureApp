@@ -4,95 +4,86 @@
 
 <br>
 
-# ApexTunnel v2.0.1
+# ApexTunnel
 
-A self-hosted reverse tunnel. Expose any local server to the internet via a persistent TCP connection between a relay (VPS) and a client (your machine).
+Expose any local server to the internet via a secure tunnel between your machine and a relay server.
 
 ```
-Browser → relay:443 ──── TCP ────→ client → localhost:8000
-```
-
-## What's New in v2.0.1
-
-- **Binary Framing Protocol** — replaces newline-delimited JSON with a robust binary frame format supporting streaming bodies without base64 encoding
-- **Streaming Bodies** — images, videos, audio, and large files are streamed directly without loading into memory
-- **TLS Tunnel Encryption** — optional TLS wrapping on the TCP tunnel between relay and client
-- **Heartbeat & Connection Management** — automatic dead connection detection and cleanup
-- **Rate Limiting** — IP-based rate limiting on both HTTP and registration endpoints
-- **Backpressure Control** — prevents memory exhaustion when client is slower than relay
-- **Subdomain Reclaim** — stale connections are forcefully reclaimed instead of permanently blocking the subdomain
-- **Prometheus Metrics** — `/metrics` and `/health` endpoints for observability
-- **Security Hardening** — input validation, header sanitization, request size limits, and safer token validation
-- **Test Suite** — comprehensive unit tests for protocol, rate limiting, security, and backpressure
-- **Graceful Shutdown** — clean resource cleanup on SIGINT/SIGTERM
-
-## Stack
-
-Pure Node.js — `net` `tls` `http` `crypto`. No npm packages on the relay. Client uses `blessed` for the terminal UI.
-
-## Setup
-
-### 1. Relay — Run on your VPS
-
-```bash
-cd ExposureApp/relayServer
-
-# 1. Generate TLS certificates for secure tunneling
-openssl req -x509 -newkey rsa:4096 -keyout key.pem -out cert.pem -sha256 -days 365 -nodes
-
-# 2. Configure environment
-cp .env.example .env
-# Edit .env to set your API_URL, INTERNAL_SECRET, and FRONTEND_URL
-
-# 3. Start the relay
-pnpm install
-pnpm dev
-```
-
-### 2. Client — Run locally
-
-**Option A — Download binary** (Linux / macOS / Windows)
-
-Grab the binary for your platform from the <a href="https://github.com/braverachacha/ExposureApp/releases">releases page, then:</a>
-
-```bash
-# Linux/macOS — make it executable and move to PATH
-chmod +x apex-linux-arm64   # or apex-linux-x64 / apex-macos-x64
-sudo mv apex-linux-arm64 /usr/local/bin/apex
-```
-
-**Option B — Run from source** (Termux / Android or any Node.js environment)
-
-```bash
-cd ExposureApp/clientServer
-pnpm install
-pnpm run bundle          # builds dist/bundle.cjs
-
-# Link globally so the `apex` command is available anywhere
-pnpm link --global
+Browser → relay:443 ──── TCP ────→ client → localhost:3000
 ```
 
 ---
 
-Once installed, save your auth token once:
+## Getting an Auth Token
+
+1. Go to [apextunnel.top](https://apextunnel.top) and create an account
+2. After signing in, navigate to your dashboard and copy your auth token
+3. Save it locally:
 
 ```bash
 apex authtoken <your_token>
 ```
 
-Then expose a local port:
+Your token is encrypted and stored on your machine. To update it later:
 
 ```bash
-# Expose port 3000
-apex http 3000
+apex new token <your_token>
+```
 
-# Expose with a custom subdomain
+---
+
+## Installation
+
+### Download a binary
+
+Grab the binary for your platform from the [releases page](https://github.com/braverachacha/ExposureApp/releases):
+
+| Platform | File |
+|----------|------|
+| Linux x64 | `apex-linux-x64` |
+| Linux ARM64 | `apex-linux-arm64` |
+| macOS x64 | `apex-macos-x64` |
+| Windows ARM64 | `apex-win-arm64` |
+
+### Make it executable
+
+```bash
+chmod +x apex-linux-arm64   # replace with your downloaded filename
+```
+
+### Add to PATH
+
+Moving the binary to `/usr/local/bin` makes the `apex` command available anywhere in your terminal:
+
+```bash
+sudo mv apex-linux-arm64 /usr/local/bin/apex
+```
+
+Verify the install:
+
+```bash
+apex help
+```
+
+---
+
+## Usage
+
+### Expose a local port
+
+```bash
+apex http 3000
+```
+
+### Expose with a custom subdomain
+
+```bash
 apex http 3000 --subdomain myapp
 ```
 
-```
-✔ Authtoken saved to ~/.apextunnel
+Once connected:
 
+```
 ┌─────────────────────────────────────────────────────────┐
 │  ApexTunnel v2.0.1                                      │
 │  ─────────────────────────────────────────              │
@@ -103,6 +94,28 @@ apex http 3000 --subdomain myapp
 └─────────────────────────────────────────────────────────┘
 ```
 
+---
+
+## Inspector & Dashboard
+
+The inspector lets you view and replay live requests passing through the tunnel.
+
+### Set a dashboard password
+
+```bash
+apex pass mysecret123
+```
+
+### Update the password
+
+```bash
+apex new pass newsecret123
+```
+
+Once the tunnel is running, open the inspector from the terminal UI by pressing `I`. You'll be prompted for your password.
+
+---
+
 ## Commands
 
 | Command | Description |
@@ -110,7 +123,10 @@ apex http 3000 --subdomain myapp
 | `apex http <port>` | Expose a local port |
 | `apex http <port> --subdomain <name>` | Expose with a custom subdomain |
 | `apex authtoken <token>` | Save your auth token |
-| `apex status` | Show saved token & relay info |
+| `apex new token <token>` | Update your auth token |
+| `apex pass <password>` | Set your dashboard password |
+| `apex new pass <password>` | Update your dashboard password |
+| `apex status` | Show saved token and relay info |
 | `apex help` | Show help message |
 
 ## Keybinds
@@ -121,98 +137,68 @@ apex http 3000 --subdomain myapp
 | `R` | Restart tunnel |
 | `C` | Clear request log |
 | `O` | Open tunnel URL in browser |
+| `I` | Open inspector |
 
-## Env Overrides (debugging)
+---
+
+## Environment Overrides
+
+For debugging or self-hosted relay setups, you can override defaults via environment variables:
 
 | Variable | Default | Description |
 |----------|---------|-------------|
 | `APEX_RELAY` | `relay.apextunnel.top` | Relay hostname |
 | `APEX_RELAY_PORT` | `9000` | Relay port |
-| `APEX_TLS` | `false` | Enable TLS on tunnel connection |
+| `APEX_TLS` | `false` | Enable TLS on the tunnel connection |
 | `APEX_TLS_CA` | — | Path to CA cert for self-signed TLS |
+| `APEX_LOCAL_HOST` | `localhost` | Local app hostname |
 
-## Observability
+---
 
-The relay exposes a metrics server on port `9090` (configurable via `METRICS_PORT`):
+## Troubleshooting
 
-- `GET /metrics` — Prometheus-compatible metrics
-- `GET /health` — Health check JSON
+**`apex: command not found`**
 
-Metrics include:
-- `apex_requests_total` — Counter by method and status
-- `apex_request_duration_seconds` — Histogram of request latencies
-- `apex_connections_total` — Total client connections
-- `apex_active_connections` — Gauge of currently connected clients
-- `apex_uptime_seconds` — Process uptime
-
-## Testing
-
+The binary isn't on your PATH. Either move it to `/usr/local/bin`:
 ```bash
-# Install root dev dependencies
-pnpm install
-
-# Run all tests
-pnpm test
-
-# Watch mode
-pnpm test:watch
+sudo mv apex-linux-arm64 /usr/local/bin/apex
 ```
-
-## File Structure
-
-```
-ExposureApp-v2/
-├── .gitignore
-├── CHANGELOG.md
-├── README.md
-├── SECURITY.md
-├── package.json
-├── vitest.config.js
-├── tests/
-│   ├── protocol.test.js
-│   ├── rateLimiter.test.js
-│   ├── security.test.js
-│   └── backpressure.test.js
-├── clientServer/
-│   ├── client.js
-│   ├── package.json
-│   └── src/
-│       ├── auth.js
-│       ├── cli.js
-│       ├── clientError.js
-│       ├── connection.js
-│       └── protocol.js
-└── relayServer/
-    ├── .env.example
-    ├── logger.js
-    ├── package.json
-    ├── relay.js
-    ├── handlers/
-    │   └── register.js
-    ├── pages/
-    │   └── errorPages.js
-    └── src/
-        ├── protocol.js
-        ├── connectionManager.js
-        ├── rateLimiter.js
-        ├── security.js
-        ├── metrics.js
-        ├── backpressure.js
-        └── tls.js
-```
-
-## N/B
-
-Note for Windows Users: The Windows binary is currently unsigned. If Windows SmartScreen displays a warning, click "More info" and then ***"Run anyway"*** to proceed with the installation.
-
-Make sure the downloaded file is executable by running
-
+Or prefix your command with the full path:
 ```bash
-chmod +x apex-win-arm64
+./apex http 3000
 ```
 
-***Happy codding and stay safe***
+**`Permission denied` when running the binary**
 
+The binary isn't marked as executable:
+```bash
+chmod +x apex-linux-arm64
+```
+
+**Tunnel connects but site isn't reachable**
+
+Make sure the local server you're exposing is actually running on the port you specified. The tunnel forwards traffic to `localhost:<port>` — if nothing is listening there, requests will fail.
+
+**Subdomain already in use**
+
+If a subdomain was recently disconnected it may take a few seconds to be reclaimed. Try again or choose a different subdomain with `--subdomain`.
+
+**Windows SmartScreen warning**
+
+The Windows binary is currently unsigned. Click **"More info"** then **"Run anyway"** to proceed. You can also run it from PowerShell directly to bypass the prompt.
+
+**Auth token rejected**
+
+Double-check the token copied from your dashboard — tokens are long and easy to truncate. Re-run `apex authtoken <token>` with the full value.
+
+**Connection drops frequently**
+
+Try enabling TLS on the tunnel for a more stable connection:
+```bash
+APEX_TLS=true apex http 3000
+```
+
+---
 
 ## License
 
