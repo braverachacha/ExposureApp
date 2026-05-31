@@ -1,12 +1,4 @@
 //  clientServer/src/connection.js
-/**
- * Connection manager with TLS fallback, heartbeat, reconnection, and streaming
- * 
- * Supports three modes:
- * 1. TLS-only: useTls=true, detectTls=false (fail on plaintext relay)
- * 2. Plaintext-only: useTls=false, detectTls=false (no TLS attempt)
- * 3. Auto-detect: useTls=false, detectTls=true (try TLS, fallback to plaintext)
- */
 
 import net from 'net';
 import tls from 'tls';

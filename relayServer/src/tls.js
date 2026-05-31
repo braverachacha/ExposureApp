@@ -1,61 +1,15 @@
 // relayServer/src/tls.js
 /**
- * TLS configuration with intelligent certificate detection
+ * TLS configuration — explicit environment variables only
  * 
- * Fallback order:
- * 1. TLS_KEY_PATH and TLS_CERT_PATH environment variables
- * 2. ./src/privkey.pem and ./src/fullchain.pem (local cert directory)
- * 3. ./privkey.pem and ./fullchain.pem (relayServer root)
- * 
- * Set TLS_DISABLED=true to explicitly run in plaintext mode
+ * Set TLS_KEY_PATH and TLS_CERT_PATH to enable TLS.
+ * Set TLS_DISABLED=true to explicitly run in plaintext.
  */
 
 import fs from 'fs';
-import path from 'path';
 import tls from 'tls';
 import logger from '../logger.js';
 import { CONFIG } from './config.js';
-
-/**
- * Attempt to locate TLS certificate pair through multiple fallback paths
- * Returns { key, cert, source } object or null if not found
- */
-function findCertificatePair() {
-  const checks = [
-    {
-      source: 'environment',
-      key: CONFIG.tls.keyPath,
-      cert: CONFIG.tls.certPath,
-    },
-    {
-      source: 'local (src/)',
-      key: path.join(process.cwd(), 'src', 'privkey.pem'),
-      cert: path.join(process.cwd(), 'src', 'fullchain.pem'),
-    },
-    {
-      source: 'root',
-      key: path.join(process.cwd(), 'privkey.pem'),
-      cert: path.join(process.cwd(), 'fullchain.pem'),
-    },
-  ];
-
-  for (const check of checks) {
-    try {
-      if (fs.existsSync(check.key) && fs.existsSync(check.cert)) {
-        return {
-          key: check.key,
-          cert: check.cert,
-          source: check.source,
-        };
-      }
-    } catch (err) {
-      // Continue to next check on permission errors
-      continue;
-    }
-  }
-
-  return null;
-}
 
 /**
  * Load and validate TLS options for the relay server
@@ -64,32 +18,31 @@ function findCertificatePair() {
 export function getTlsOptions() {
   // Explicit TLS disable takes precedence
   if (CONFIG.tls.disabled) {
-    logger.info('TLS explicitly disabled via TLS_DISABLED=true environment variable');
+    logger.info('TLS explicitly disabled via TLS_DISABLED=true');
     return null;
   }
 
-  const certPair = findCertificatePair();
+  const keyPath = CONFIG.tls.keyPath;
+  const certPath = CONFIG.tls.certPath;
 
-  if (!certPair) {
+  // No paths configured = plaintext
+  if (!keyPath || !certPath) {
+    logger.info('TLS not configured (TLS_KEY_PATH and TLS_CERT_PATH not set). Running in plaintext.');
+    return null;
+  }
+
+  // Check if files exist
+  if (!fs.existsSync(keyPath) || !fs.existsSync(certPath)) {
     logger.warn(
-      {
-        primaryKey: CONFIG.tls.keyPath,
-        primaryCert: CONFIG.tls.certPath,
-        fallbackPaths: [
-          'relayServer/src/privkey.pem + fullchain.pem',
-          'relayServer/privkey.pem + fullchain.pem',
-        ],
-      },
-      'TLS certificates not found. Relay will run in plaintext mode. ' +
-        'To enable TLS: (1) Set TLS_KEY_PATH and TLS_CERT_PATH environment variables, or ' +
-        '(2) Place privkey.pem and fullchain.pem in relayServer root or src/ directory'
+      { keyPath, certPath },
+      'TLS certificate files not found. Running in plaintext.'
     );
     return null;
   }
 
   try {
-    const key = fs.readFileSync(certPair.key, 'utf8');
-    const cert = fs.readFileSync(certPair.cert, 'utf8');
+    const key = fs.readFileSync(keyPath, 'utf8');
+    const cert = fs.readFileSync(certPath, 'utf8');
 
     // Basic validation: ensure both are PEM formatted
     if (!key.includes('-----BEGIN') || !cert.includes('-----BEGIN')) {
@@ -97,11 +50,7 @@ export function getTlsOptions() {
     }
 
     logger.info(
-      {
-        source: certPair.source,
-        keyPath: certPair.key,
-        certPath: certPair.cert,
-      },
+      { keyPath, certPath },
       'TLS certificates loaded successfully'
     );
 
@@ -120,13 +69,8 @@ export function getTlsOptions() {
     };
   } catch (err) {
     logger.error(
-      {
-        error: err.message,
-        source: certPair.source,
-        keyPath: certPair.key,
-        certPath: certPair.cert,
-      },
-      'Failed to load TLS certificates'
+      { error: err.message, keyPath, certPath },
+      'Failed to load TLS certificates. Running in plaintext.'
     );
     return null;
   }

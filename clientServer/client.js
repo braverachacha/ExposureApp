@@ -1,7 +1,10 @@
 #!/usr/bin/env node
 // clientServer/client.js
+import dotenv from 'dotenv';
 
 import 'dotenv/config';
+dotenv.config();
+
 import fs from 'fs';
 import os from 'os';
 import path from 'path';

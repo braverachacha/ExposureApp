@@ -1,4 +1,4 @@
-// relayServer/src/config.js 
+// relayServer/src/config.js
 
 export const CONFIG = Object.freeze({
   ports: {
@@ -15,8 +15,8 @@ export const CONFIG = Object.freeze({
     regTimeoutMs: 15000,
   },
   tls: {
-    keyPath: process.env.TLS_KEY_PATH || './privkey.pem',
-    certPath: process.env.TLS_CERT_PATH || './fullchain.pem',
+    keyPath: process.env.TLS_KEY_PATH || null,
+    certPath: process.env.TLS_CERT_PATH || null,
     disabled: process.env.TLS_DISABLED === 'true',
   },
   api: {

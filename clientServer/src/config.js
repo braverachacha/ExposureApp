@@ -5,7 +5,7 @@
  * TLS Modes:
  * - APEX_TLS=true: Require TLS connection (fail if unavailable)
  * - APEX_TLS=false + APEX_TLS_DETECT=true: Auto-detect (try TLS, fallback to plaintext)
- * - APEX_TLS=false + APEX_TLS_DETECT=false: Plaintext-only
+ * - APEX_TLS=false + APEX_TLS_DETECT=false: Plaintext-only (default)
  */
 
 export const CONFIG = Object.freeze({
@@ -21,11 +21,12 @@ export const CONFIG = Object.freeze({
     caPath: process.env.APEX_TLS_CA || null,
 
     // APEX_TLS_DETECT: enable automatic TLS detection (try TLS, fallback to plaintext)
-    // Defaults to true if not specified, disabled if APEX_TLS=true
+    // Defaults to false — must be explicitly set to true
+    // Disabled if APEX_TLS=true (TLS is required, no fallback needed)
     detectMode:
       process.env.APEX_TLS === 'true' || process.env.APEX_TLS === '1'
         ? false // No detection if TLS is required
-        : process.env.APEX_TLS_DETECT !== 'false', // Default: true (enable detection)
+        : process.env.APEX_TLS_DETECT === 'true', // Default: false (must explicitly enable)
   },
   local: {
     host: process.env.APEX_LOCAL_HOST || 'localhost',
@@ -51,3 +52,11 @@ export function validateConfig() {
   }
   return CONFIG;
 }
+
+
+// console.log(`
+// =============== DEBUG ===============
+
+// ~> HOST: ${CONFIG.relay.host}
+
+// `);
