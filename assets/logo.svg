@@ -1,61 +1,99 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 120" width="400" height="150">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 120" width="400" height="120">
   <defs>
+    <!-- Gradients -->
     <linearGradient id="tunnelGrad" x1="0%" y1="0%" x2="100%" y2="0%">
-      <stop offset="0%" style="stop-color:#00D4FF;stop-opacity:1" />
-      <stop offset="100%" style="stop-color:#0066FF;stop-opacity:1" />
+      <stop offset="0%" style="stop-color:#00F0FF;stop-opacity:1" />
+      <stop offset="50%" style="stop-color:#0080FF;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#7000FF;stop-opacity:1" />
     </linearGradient>
+    
     <linearGradient id="bgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" style="stop-color:#0a0f1e;stop-opacity:1" />
-      <stop offset="100%" style="stop-color:#0d1526;stop-opacity:1" />
+      <stop offset="0%" style="stop-color:#0a0e27;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#121a3d;stop-opacity:1" />
     </linearGradient>
-    <filter id="glow">
-      <feGaussianBlur stdDeviation="2" result="blur"/>
+    
+    <linearGradient id="accentGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" style="stop-color:#00F0FF;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#0080FF;stop-opacity:1" />
+    </linearGradient>
+
+    <!-- Glow filter -->
+    <filter id="glow" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur stdDeviation="2.5" result="blur"/>
       <feMerge>
         <feMergeNode in="blur"/>
         <feMergeNode in="SourceGraphic"/>
       </feMerge>
     </filter>
+
+    <!-- Animations -->
     <style>
       @keyframes pulse {
-        0%, 100% { opacity: 1; }
-        50% { opacity: 0.4; }
+        0%, 100% { opacity: 0.3; transform: scale(1); }
+        50% { opacity: 1; transform: scale(1.2); }
       }
       @keyframes flow {
-        0% { stroke-dashoffset: 20; }
+        0% { stroke-dashoffset: 24; }
         100% { stroke-dashoffset: 0; }
       }
-      .dot1 { animation: pulse 2s ease-in-out infinite; }
-      .dot2 { animation: pulse 2s ease-in-out 0.6s infinite; }
-      .dot3 { animation: pulse 2s ease-in-out 1.2s infinite; }
-      .line { animation: flow 1.5s linear infinite; stroke-dasharray: 4 4; }
+      @keyframes shimmer {
+        0% { opacity: 0.4; }
+        50% { opacity: 1; }
+        100% { opacity: 0.4; }
+      }
+      .dot1 { animation: pulse 2s ease-in-out infinite; transform-origin: center; }
+      .dot2 { animation: pulse 2s ease-in-out 0.7s infinite; transform-origin: center; }
+      .dot3 { animation: pulse 2s ease-in-out 1.4s infinite; transform-origin: center; }
+      .tunnel-line { animation: flow 1s linear infinite; stroke-dasharray: 6 6; }
+      .shimmer { animation: shimmer 3s ease-in-out infinite; }
     </style>
   </defs>
 
   <!-- Background -->
-  <rect width="400" height="120" rx="12" fill="url(#bgGrad)"/>
-  <rect width="400" height="120" rx="12" fill="none" stroke="#00D4FF" stroke-width="0.5" opacity="0.3"/>
+  <rect width="400" height="120" rx="14" fill="url(#bgGrad)"/>
+  
+  <!-- Subtle border glow -->
+  <rect width="400" height="120" rx="14" fill="none" stroke="url(#tunnelGrad)" stroke-width="1" opacity="0.25" filter="url(#glow)"/>
 
-  <!-- Icon: tunnel diagram -->
-  <!-- Left box (local) -->
-  <rect x="18" y="42" width="36" height="36" rx="6" fill="none" stroke="#00D4FF" stroke-width="1.5" opacity="0.7"/>
-  <text x="36" y="64" text-anchor="middle" font-family="monospace" font-size="9" fill="#00D4FF" opacity="0.8">local</text>
+  <!-- Icon: Modern tunnel diagram -->
+  <g transform="translate(20, 30)">
+    <!-- Left node (local) -->
+    <rect x="0" y="10" width="32" height="32" rx="8" fill="none" stroke="#00F0FF" stroke-width="1.5" opacity="0.6"/>
+    <circle cx="16" cy="26" r="3" fill="#00F0FF" opacity="0.8"/>
+    <text x="16" y="54" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-size="7" font-weight="600" fill="#00F0FF" opacity="0.5">YOU</text>
 
-  <!-- Animated tunnel line -->
-  <line x1="54" y1="60" x2="96" y2="60" stroke="url(#tunnelGrad)" stroke-width="1.5" class="line"/>
+    <!-- Tunnel connection -->
+    <path d="M 32 26 L 48 26" stroke="url(#tunnelGrad)" stroke-width="2" stroke-linecap="round" class="tunnel-line"/>
+    
+    <!-- Animated data packets -->
+    <circle cx="38" cy="26" r="2.5" fill="#00F0FF" class="dot1" filter="url(#glow)"/>
+    <circle cx="44" cy="26" r="2.5" fill="#0080FF" class="dot2" filter="url(#glow)"/>
 
-  <!-- Dots on line -->
-  <circle cx="64" cy="60" r="2.5" fill="#00D4FF" class="dot1" filter="url(#glow)"/>
-  <circle cx="75" cy="60" r="2.5" fill="#00D4FF" class="dot2" filter="url(#glow)"/>
-  <circle cx="86" cy="60" r="2.5" fill="#00D4FF" class="dot3" filter="url(#glow)"/>
+    <!-- Right node (relay) -->
+    <rect x="48" y="10" width="32" height="32" rx="8" fill="none" stroke="#7000FF" stroke-width="1.5" opacity="0.6"/>
+    <polygon points="58,20 70,26 58,32" fill="#7000FF" opacity="0.8"/>
+    <text x="64" y="54" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-size="7" font-weight="600" fill="#7000FF" opacity="0.5">WEB</text>
 
-  <!-- Right box (relay) -->
-  <rect x="96" y="42" width="36" height="36" rx="6" fill="none" stroke="#0066FF" stroke-width="1.5" opacity="0.7"/>
-  <text x="114" y="64" text-anchor="middle" font-family="monospace" font-size="9" fill="#0066FF" opacity="0.8">relay</text>
+    <!-- Connection status indicator -->
+    <circle cx="40" cy="0" r="2" fill="#00FF88" opacity="0.9" class="shimmer"/>
+  </g>
 
-  <!-- Text -->
-  <text x="152" y="52" font-family="'Courier New', monospace" font-size="28" font-weight="700" fill="url(#tunnelGrad)" filter="url(#glow)" letter-spacing="-0.5">Exposure</text>
-  <text x="152" y="78" font-family="'Courier New', monospace" font-size="28" font-weight="700" fill="#ffffff" opacity="0.9" letter-spacing="-0.5">App</text>
+  <!-- Brand name -->
+  <g transform="translate(120, 48)">
+    <!-- Apex -->
+    <text x="0" y="0" font-family="'SF Pro Display', 'Inter', 'Segoe UI', system-ui, sans-serif" font-size="32" font-weight="800" fill="url(#tunnelGrad)" filter="url(#glow)" letter-spacing="-1">Apex</text>
+    
+    <!-- Tunnel -->
+    <text x="78" y="0" font-family="'SF Pro Display', 'Inter', 'Segoe UI', system-ui, sans-serif" font-size="32" font-weight="300" fill="#ffffff" opacity="0.95" letter-spacing="-1">Tunnel</text>
+  </g>
 
   <!-- Tagline -->
-  <text x="152" y="98" font-family="monospace" font-size="10" fill="#00D4FF" opacity="0.5" letter-spacing="2">EXPOSE · TUNNEL · SHIP</text>
+  <text x="120" y="78" font-family="'SF Mono', 'Fira Code', 'JetBrains Mono', monospace" font-size="9" font-weight="500" fill="#00F0FF" opacity="0.45" letter-spacing="3">EXPOSE LOCALHOST TO THE WORLD</text>
+
+  <!-- Version badge -->
+  <g transform="translate(340, 20)">
+    <rect x="0" y="0" width="40" height="18" rx="4" fill="url(#accentGrad)" opacity="0.15"/>
+    <rect x="0" y="0" width="40" height="18" rx="4" fill="none" stroke="url(#accentGrad)" stroke-width="0.5" opacity="0.4"/>
+    <text x="20" y="12" text-anchor="middle" font-family="'SF Mono', monospace" font-size="8" font-weight="700" fill="#00F0FF" opacity="0.8">v3.0</text>
+  </g>
 </svg>
