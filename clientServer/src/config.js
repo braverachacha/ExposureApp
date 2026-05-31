@@ -53,10 +53,3 @@ export function validateConfig() {
   return CONFIG;
 }
 
-
-// console.log(`
-// =============== DEBUG ===============
-
-// ~> HOST: ${CONFIG.relay.host}
-
-// `);
