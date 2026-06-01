@@ -1,27 +1,22 @@
 export const ANSI = {
-  brand: '\x1b[38;5;51m',       // Cyan (Brilliant)
-  brandBold: '\x1b[1;38;5;51m', 
-  text: '\x1b[38;5;255m',      // Pure White
-  dim: '\x1b[38;5;244m',       // Medium Gray (Readable)
-  success: '\x1b[38;5;46m',    // Lime Green
-  warning: '\x1b[38;5;226m',   // Bright Yellow
-  error: '\x1b[38;5;196m',     // Bright Red
+  brand: '\x1b[38;5;44m',        // Teal
+  brandBold: '\x1b[1;38;5;44m', 
+  text: '\x1b[38;5;255m',        // Pure White
+  dim: '\x1b[38;5;245m',         // Sea Gray
+  success: '\x1b[38;5;157m',     // Seafoam
+  warning: '\x1b[38;5;229m',     // Sand
+  error: '\x1b[38;5;203m',       // Salmon
   reset: '\x1b[0m',
 };
-
-
-
-
 
 export const C = ANSI;
 
 export const BLESSED = {
-  brand: '#00ffff',      // Brilliant Cyan
-  brandBold: '#00ffff',
-  text: '#ffffff',       // Pure White
-  dim: '#808080',        // Medium Gray (Increased visibility)
-  success: '#00ff00',    // Lime Green
-  warning: '#ffff00',    // Bright Yellow
-  error: '#ff0000',      // Bright Red
+  brand: '#00ffcc',        // Teal
+  brandBold: '#00ffcc',
+  text: '#ffffff',         // Pure White
+  dim: '#7a8a8a',          // Sea Gray
+  success: '#7fffd4',      // Seafoam
+  warning: '#ffe4b5',      // Sand
+  error: '#fa8072',        // Salmon
 };
-
