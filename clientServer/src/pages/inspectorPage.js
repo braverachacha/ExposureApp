@@ -69,7 +69,7 @@ export const inspectorPage = (state, INSPECTOR_CSS) => {
 </div>
 <div class="table-wrapper">
 <table>
-<<thead><tr><th class="time-col">Time</th><th class="method-col">Method</th><th class="url-col">Path</th><th class="status-col">Status</th><th class="dur-col">Duration</th></tr></thead>
+<thead><tr><th class="time-col">Time</th><th class="method-col">Method</th><th class="url-col">Path</th><th class="status-col">Status</th><th class="dur-col">Duration</th></tr></thead>
 <tbody><tr><td colspan="5" class="empty">Waiting for requests…</td></tr></tbody>
 </table>
 </div>
