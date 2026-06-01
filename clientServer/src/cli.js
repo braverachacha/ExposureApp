@@ -1,5 +1,5 @@
-// clientServer/src/cli.js 
- 
+// clientServer/src/cli.js
+
 import blessed from 'blessed';
 import { exec } from 'child_process';
 import { BLESSED as T } from './colors.js';
@@ -97,7 +97,7 @@ const openInBrowser = (url) => {
   else bin = 'xdg-open';
 
   exec(`${bin} ${url}`, (err) => {
-    if (err) addLog(`{${T.error}-fg}Failed to open browser: ${err.message}{/${T.error}-fg}`);
+    if (err) logError(`Failed to open browser: ${err.message}`);
   });
 };
 
@@ -227,6 +227,13 @@ export const addLog = (line) => {
   screen.render();
 };
 
+export const logError = (message) => {
+  const timestamp = new Date().toLocaleTimeString();
+  const line = `[${timestamp}] ERROR: ${message}`;
+  // Print outside blessed UI so it doesn't corrupt the layout
+  console.error(line);
+};
+
 export const logRequest = (method, url, status, duration = 0, details = {}) => {
   if (!screen) return;
   const time = new Date().toLocaleTimeString();
@@ -241,16 +248,16 @@ export const logRequest = (method, url, status, duration = 0, details = {}) => {
     return out;
   };
 
-  const raw = { 
-    time, 
-    method, 
-    url, 
-    status, 
+  const raw = {
+    time,
+    method,
+    url,
+    status,
     duration,
     reqHeaders: normalizeHeaders(details.reqHeaders),
     resHeaders: normalizeHeaders(details.resHeaders),
   };
-  
+
   rawRequests.push(raw);
   if (rawRequests.length > MAX_RAW_REQUESTS) {
     rawRequests = rawRequests.slice(-MAX_RAW_REQUESTS);

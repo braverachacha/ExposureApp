@@ -13,11 +13,10 @@ import {
   setConnecting, setOnline, setReconnecting,
   logRequest, destroyUI, uiActive, setRestartCallback,
   getState, setInspectorPort,
+  logError,
 } from './src/cli.js';
 import {
-  getStoredToken, saveToken,
-  setPassword, updatePassword, updateToken,
-  hasPassword, verifyPassword,
+  getStoredToken, saveToken, updateToken,
 } from './src/auth.js';
 import { getClientErrorPage } from './src/clientError.js';
 import { TunnelConnection } from './src/connection.js';
@@ -35,9 +34,6 @@ async function migrateOldConfig() {
     if (oldData.token && typeof oldData.token === 'string') {
       await openDb();
       await saveToken(oldData.token, true);
-      if (oldData.passwordHash && oldData.passwordSalt) {
-        console.log(`${C.warning}○${C.reset} Password needs reset: run 'apex pass <password>'`);
-      }
     }
     fs.unlinkSync(OLD_CONFIG_PATH);
     console.log(`${C.success}✔${C.reset} Migration complete. Old config removed.`);
@@ -67,8 +63,6 @@ async function main() {
    ${C.text}apex http <port> --subdomain <name>${C.reset}  ${C.dim}Expose with a custom subdomain${C.reset}
    ${C.text}apex authtoken <token>${C.reset}     ${C.dim}Save your auth token${C.reset}
    ${C.text}apex new token <token>${C.reset}     ${C.dim}Update auth token${C.reset}
-   ${C.text}apex pass <password>${C.reset}       ${C.dim}Set dashboard password${C.reset}
-   ${C.text}apex new pass <password>${C.reset}   ${C.dim}Update dashboard password${C.reset}
    ${C.text}apex status${C.reset}                ${C.dim}Show saved token & relay info${C.reset}
    ${C.text}apex help${C.reset}                  ${C.dim}Show this message${C.reset}
 
@@ -76,8 +70,6 @@ async function main() {
    ${C.dim}apex http 3000${C.reset}
    ${C.dim}apex http 3000 --subdomain myapp${C.reset}
    ${C.dim}apex authtoken eyJhbGciOiJIUzI1NiJ9...${C.reset}
-   ${C.dim}apex pass mysecret123${C.reset}
-   ${C.dim}apex new pass newsecret123${C.reset}
 
  ${C.brandBold}Env overrides:${C.reset}
    ${C.text}APEX_RELAY${C.reset}       ${C.dim}Relay hostname (default: relay.apextunnel.top)${C.reset}
@@ -108,30 +100,9 @@ async function main() {
       try { await updateToken(value.trim()); console.log(`${C.success}✔${C.reset} Token updated successfully.`); process.exit(0); }
       catch (err) { console.error(`${C.error}✖${C.reset} ${err.message}`); process.exit(1); }
     }
-    if (subCmd === 'pass' || subCmd === 'password') {
-      if (!value || !value.trim()) { console.error(`${C.error}✖${C.reset} ${C.text}Usage:${C.reset} apex new pass <password>`); process.exit(1); }
-      try { await updatePassword(value.trim()); console.log(`${C.success}✔${C.reset} Password updated successfully.`); process.exit(0); }
-      catch (err) { console.error(`${C.error}✖${C.reset} ${err.message}`); process.exit(1); }
-    }
     console.error(`${C.error}✖${C.reset} Unknown 'new' subcommand: "${subCmd}"`);
-    console.error(`   ${C.dim}Available: token, pass${C.reset}`);
+    console.error(`   ${C.dim}Available: token${C.reset}`);
     process.exit(1);
-  }
-
-  if (cmd === 'pass' || cmd === 'password') {
-    const rawPass = argv[1];
-    if (!rawPass || !rawPass.trim()) { console.error(`${C.error}✖${C.reset} ${C.text}Usage:${C.reset} apex pass <password>`); process.exit(1); }
-    try {
-      await setPassword(rawPass.trim());
-      console.log(`${C.success}✔${C.reset} Password set successfully.`);
-      process.exit(0);
-    } catch (err) {
-      if (err.message.includes('already set')) {
-        console.error(`${C.error}✖${C.reset} ${err.message}`);
-        console.error(`   ${C.dim}Run: apex new pass <password>${C.reset}`);
-      } else { console.error(`${C.error}✖${C.reset} ${err.message}`); }
-      process.exit(1);
-    }
   }
 
   if (cmd === 'status') {
@@ -150,8 +121,6 @@ async function main() {
       console.log(`${C.success}✔${C.reset} Token : ${C.text}${masked}${C.reset}`);
       console.log(`   ${C.dim}Relay : ${relay.host}:${relay.port} ${tls.enabled ? '(TLS)' : ''}${C.reset}`);
     }
-    const passStatus = await hasPassword();
-    console.log(`   ${C.dim}Password: ${passStatus ? 'Set' : 'Not set'}${C.reset}`);
     if (dbInitResult.cleaned > 0) console.log(`   ${C.dim}DB cleanup: ${dbInitResult.cleaned} old rows removed${C.reset}`);
     if (dbInitResult.migrated > 0) console.log(`   ${C.dim}Crypto migration: ${dbInitResult.migrated} value(s) encrypted${C.reset}`);
     process.exit(0);
@@ -262,6 +231,7 @@ async function main() {
     tunnel.sendBodyChunk(requestId, Buffer.from(html));
     tunnel.sendBodyEnd(requestId);
     logRequest(method, safePath, 502, 0, { reqHeaders: {}, resHeaders: { 'content-type': 'text/html' } });
+    logError(`502 on ${method} ${safePath}`);
   }
 
   async function finishLog(msg, safePath, status, duration, reqState) {
@@ -348,7 +318,7 @@ async function main() {
       });
       localRes.on('error', (err) => {
         if (reqState.timedOut) return;
-        console.error(`[PROXY] Response stream error: ${err.message}`);
+        logError(`Response stream error: ${err.message} (${msg.method} ${safePath})`);
         tunnel.sendBodyEnd(msg.id);
         finishLog(msg, safePath, 502, 0, reqState);
         clearTimeout(reqState.timeout);
@@ -365,7 +335,7 @@ async function main() {
     if (reqState.bodyComplete) localReq.end();
     localReq.on('error', (err) => {
       if (reqState.timedOut) return;
-      console.error(`[PROXY ERROR] ${msg.method} ${safePath} -> ${local.host}:${localPort}: ${err.message}`);
+      logError(`Proxy error: ${err.message} (${msg.method} ${safePath})`);
       clearTimeout(reqState.timeout);
       activeRequests.delete(msg.id);
       send502(msg.id, msg.method, safePath, localReq);

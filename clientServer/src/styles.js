@@ -1,3 +1,4 @@
+// clientServer/src/styles.js
 export const INSPECTOR_CSS = `* { margin: 0; padding: 0; box-sizing: border-box; }
 body {
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'SF Mono', Monaco, 'Courier New', monospace;
@@ -5,11 +6,6 @@ body {
   color: #e0e0e0;
   line-height: 1.5;
   min-height: 100vh;
-}
-.centered-page {
-  display: flex;
-  align-items: center;
-  justify-content: center;
 }
 .header {
   background: #111;
@@ -28,16 +24,6 @@ body {
   color: #00ff88;
   letter-spacing: -0.3px;
 }
-.logout {
-  color: #666;
-  text-decoration: none;
-  font-size: 12px;
-  border: 1px solid #333;
-  padding: 6px 12px;
-  border-radius: 4px;
-  transition: all 0.15s;
-}
-.logout:hover { color: #ff4444; border-color: #ff4444; }
 .meta {
   display: flex;
   gap: 16px;
@@ -335,66 +321,6 @@ td {
 .tab:hover { color: #ccc; }
 .tab.active { background: #00ff8811; color: #00ff88; }
 
-/* Setup & Login shared */
-.setup-box, .login-box {
-  background: #111;
-  border: 1px solid #222;
-  border-radius: 12px;
-  padding: 32px;
-  width: 70%;
-  max-width: 600px;
-}
-.setup-box h1, .login-box h1 {
-  font-size: 18px;
-  color: #00ff88;
-  margin-bottom: 24px;
-  text-align: center;
-}
-.field { margin-bottom: 16px; }
-.field label {
-  display: block;
-  font-size: 12px;
-  color: #666;
-  margin-bottom: 6px;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-}
-.field input {
-  width: 100%;
-  background: #0a0a0a;
-  border: 1px solid #333;
-  color: #e0e0e0;
-  padding: 10px 12px;
-  border-radius: 6px;
-  font-family: inherit;
-  font-size: 14px;
-}
-.field input:focus { outline: none; border-color: #00ff88; }
-.hint { font-size: 11px; color: #555; margin-top: 4px; }
-.error { color: #ff4444; font-size: 12px; margin-top: 8px; display: none; }
-.countdown {
-  color: #ffcc00;
-  font-size: 13px;
-  margin-top: 12px;
-  text-align: center;
-  display: none;
-}
-.countdown span { font-weight: 600; color: #ff4444; }
-.setup-box button, .login-box button {
-  width: 100%;
-  background: #00ff88;
-  color: #0a0a0a;
-  border: none;
-  padding: 12px;
-  border-radius: 6px;
-  font-weight: 600;
-  font-size: 14px;
-  cursor: pointer;
-  margin-top: 8px;
-}
-.setup-box button:hover, .login-box button:hover { background: #00cc6a; }
-.setup-box button:disabled, .login-box button:disabled { opacity: 0.5; cursor: not-allowed; }
-
 @media (max-width: 768px) {
   .dur-col, .time-col { display: none; }
   .header h1 { font-size: 16px; }
@@ -403,5 +329,4 @@ td {
   .status-bar { padding: 10px 12px; }
   .stats { flex-direction: column; }
   .stat-card { min-width: 100%; }
-  .setup-box, .login-box { width: 90%; padding: 24px; }
 }`;
