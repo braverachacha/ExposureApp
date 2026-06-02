@@ -1,0 +1,53 @@
+name: Build Client Binaries
+
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v3
+        with:
+          version: 10
+
+      - name: Set up Node.js (v18 required for pkg targets)
+        uses: actions/setup-node@v4
+        with:
+          node-version: 18
+          cache: 'pnpm'
+          cache-dependency-path: clientServer/pnpm-lock.yaml
+
+      - name: Install dependencies
+        run: |
+          cd clientServer
+          pnpm install --frozen-lockfile
+
+      - name: Build Desktop Binaries (Linux & Windows x64)
+        run: |
+          cd clientServer
+          pnpm run build:desktop
+
+      - name: Build ARM64 Binary
+        run: |
+          cd clientServer
+          pnpm run build:arm64
+
+      - name: Build Termux Binary
+        run: |
+          cd clientServer
+          pnpm run build:termux
+
+      - name: Upload Binaries as Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: apex-client-binaries
+          path: clientServer/bin/
+          retention-days: 5
