@@ -3,38 +3,38 @@
 export const THEMES = {
   teal: {
     name: 'Teal',
-    bg: '#0a0a0a',
-    bgSecondary: '#111',
-    bgTertiary: '#1a1a1a',
-    border: '#222',
-    text: '#e0e0e0',
-    textDim: '#888',
-    textMuted: '#666',
-    brand: '#00ffcc',
-    brandDim: 'rgba(0,255,204,0.07)',
-    brandHover: 'rgba(0,255,204,0.13)',
-    success: '#7fffd4',
-    warning: '#ffe4b5',
-    error: '#fa8072',
-    errorDim: 'rgba(250,128,114,0.07)',
-    errorHover: 'rgba(250,128,114,0.13)',
-    methodGet: '#00ffcc',
-    methodGetBg: 'rgba(0,255,204,0.13)',
-    methodPost: '#00d4ff',
-    methodPostBg: 'rgba(0,212,255,0.13)',
-    methodPut: '#ffaa00',
-    methodPutBg: 'rgba(255,170,0,0.13)',
-    methodPatch: '#bc13fe',
-    methodPatchBg: 'rgba(188,19,254,0.13)',
-    methodDelete: '#ff003c',
-    methodDeleteBg: 'rgba(255,0,60,0.13)',
-    methodHead: '#999',
-    methodHeadBg: 'rgba(153,153,153,0.13)',
-    jsonKey: '#9cdcfe',
-    jsonString: '#ce9178',
-    jsonNumber: '#b5cea8',
-    jsonBoolean: '#569cd6',
-    jsonNull: '#569cd6',
+    bg: '#e2e8f0',
+    bgSecondary: '#d1d8e0',
+    bgTertiary: '#c5cdd8',
+    border: '#a0aec0',
+    text: '#1e293b',
+    textDim: '#475569',
+    textMuted: '#64748b',
+    brand: '#0d9488',
+    brandDim: 'rgba(13,148,136,0.12)',
+    brandHover: 'rgba(13,148,136,0.20)',
+    success: '#059669',
+    warning: '#d97706',
+    error: '#dc2626',
+    errorDim: 'rgba(220,38,38,0.12)',
+    errorHover: 'rgba(220,38,38,0.20)',
+    methodGet: '#0d9488',
+    methodGetBg: 'rgba(13,148,136,0.15)',
+    methodPost: '#0284c7',
+    methodPostBg: 'rgba(2,132,199,0.15)',
+    methodPut: '#d97706',
+    methodPutBg: 'rgba(217,119,6,0.15)',
+    methodPatch: '#7c3aed',
+    methodPatchBg: 'rgba(124,58,237,0.15)',
+    methodDelete: '#dc2626',
+    methodDeleteBg: 'rgba(220,38,38,0.15)',
+    methodHead: '#64748b',
+    methodHeadBg: 'rgba(100,116,139,0.15)',
+    jsonKey: '#0369a1',
+    jsonString: '#0d9488',
+    jsonNumber: '#d97706',
+    jsonBoolean: '#7c3aed',
+    jsonNull: '#7c3aed',
   },
   dark: {
     name: 'Dark',
@@ -45,25 +45,25 @@ export const THEMES = {
     text: '#cdd6f4',
     textDim: '#7f849c',
     textMuted: '#585b70',
-    brand: '#f38ba8',        // Pink
+    brand: '#f38ba8',
     brandDim: 'rgba(243,139,168,0.07)',
     brandHover: 'rgba(243,139,168,0.13)',
-    success: '#a6e3a1',      // Soft green
-    warning: '#f9e2af',      // Peach
-    error: '#f38ba8',        // Pink (same as brand)
+    success: '#a6e3a1',
+    warning: '#f9e2af',
+    error: '#f38ba8',
     errorDim: 'rgba(243,139,168,0.07)',
     errorHover: 'rgba(243,139,168,0.13)',
-    methodGet: '#89b4fa',    // Blue
+    methodGet: '#89b4fa',
     methodGetBg: 'rgba(137,180,250,0.13)',
-    methodPost: '#cba6f7',   // Lavender
+    methodPost: '#cba6f7',
     methodPostBg: 'rgba(203,166,247,0.13)',
-    methodPut: '#fab387',    // Peach
+    methodPut: '#fab387',
     methodPutBg: 'rgba(250,179,135,0.13)',
-    methodPatch: '#f5c2e7',  // Pink
+    methodPatch: '#f5c2e7',
     methodPatchBg: 'rgba(245,194,231,0.13)',
-    methodDelete: '#f38ba8', // Pink
+    methodDelete: '#f38ba8',
     methodDeleteBg: 'rgba(243,139,168,0.13)',
-    methodHead: '#9399b2',   // Gray
+    methodHead: '#9399b2',
     methodHeadBg: 'rgba(147,153,178,0.13)',
     jsonKey: '#89b4fa',
     jsonString: '#a6e3a1',
@@ -109,6 +109,7 @@ export function generateCSS(theme) {
   --json-number: ${t.jsonNumber};
   --json-boolean: ${t.jsonBoolean};
   --json-null: ${t.jsonNull};
+  --row-hover: ${t.bgTertiary};
 }
 body {
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'SF Mono', Monaco, 'Courier New', monospace;
@@ -173,7 +174,7 @@ body {
 .btn {
   background: var(--bg-tertiary);
   border: 1px solid var(--border);
-  color: #ccc;
+  color: var(--text-dim);
   padding: 6px 12px;
   border-radius: 4px;
   font-size: 11px;
@@ -181,7 +182,7 @@ body {
   transition: all 0.15s;
   font-family: inherit;
 }
-.btn:hover { background: #222; border-color: #444; color: #fff; }
+.btn:hover { background: var(--bg-secondary); border-color: var(--text-muted); color: var(--text); }
 .btn:active { background: var(--bg-tertiary); }
 .btn.primary { background: var(--brand-dim); border-color: var(--brand); color: var(--brand); }
 .btn.primary:hover { background: var(--brand-hover); }
@@ -214,7 +215,7 @@ td {
 }
 .time-col { width: 90px; color: var(--text-dim); }
 .method-col { width: 70px; }
-.url-col { width: auto; word-break: break-all; overflow-wrap: break-word; color: #aaa; }
+.url-col { width: auto; word-break: break-all; overflow-wrap: break-word; color: var(--text-dim); }
 .status-col { width: 60px; text-align: center; }
 .dur-col { width: 70px; text-align: right; color: var(--text-dim); }
 
@@ -232,7 +233,7 @@ td {
   transition: background 0.15s;
   animation: slideIn 0.25s ease-out;
 }
-.request-row:hover td { background: #161616; }
+.request-row:hover td { background: var(--row-hover); }
 .request-row:active td { background: var(--bg-tertiary); }
 .request-row.filtered { display: none; }
 
@@ -265,7 +266,7 @@ td {
   border-radius: 4px;
   padding: 10px;
   font-size: 11px;
-  color: #ccc;
+  color: var(--text-dim);
   overflow-x: auto;
   white-space: pre-wrap;
   word-break: break-all;
@@ -291,10 +292,10 @@ td {
 .empty {
   text-align: center;
   padding: 48px;
-  color: #444;
+  color: var(--text-muted);
   font-size: 13px;
 }
-.empty-hint { color: #555; font-style: italic; }
+.empty-hint { color: var(--text-dim); font-style: italic; }
 .live-badge {
   display: inline-flex;
   align-items: center;
@@ -371,15 +372,15 @@ td {
 .filter-select:focus { outline: none; border-color: var(--brand); }
 .copy-btn {
   background: var(--bg-tertiary);
-  border: 1px solid #333;
-  color: #888;
+  border: 1px solid var(--border);
+  color: var(--text-muted);
   padding: 4px 8px;
   border-radius: 4px;
   font-size: 10px;
   cursor: pointer;
   transition: all 0.15s;
 }
-.copy-btn:hover { background: #222; border-color: var(--brand); color: var(--brand); }
+.copy-btn:hover { background: var(--bg-secondary); border-color: var(--brand); color: var(--brand); }
 .copy-btn.copied { background: var(--brand-dim); border-color: var(--brand); color: var(--brand); }
 .json-key { color: var(--json-key); }
 .json-string { color: var(--json-string); }
@@ -392,7 +393,7 @@ td {
   border-radius: 4px;
   padding: 10px;
   font-size: 11px;
-  color: #ccc;
+  color: var(--text-dim);
   overflow-x: auto;
   white-space: pre-wrap;
   word-break: break-all;
@@ -407,7 +408,7 @@ td {
   padding: 10px;
   margin-top: 8px;
   font-size: 11px;
-  color: #ccc;
+  color: var(--text-dim);
   max-height: 200px;
   overflow-y: auto;
 }
