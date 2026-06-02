@@ -18,7 +18,7 @@ import {
 import {
   getStoredToken, saveToken, updateToken,
 } from './src/auth.js';
-import { getClientErrorPage } from './src/clientError.js';
+import { getClientErrorPage } from './src/pages/clientError.js';
 import { TunnelConnection } from './src/connection.js';
 import { startInspector, stopInspector, logRequestToDb, storeBody } from './src/inspector.js';
 import { initDatabase } from './src/db/init.js';
