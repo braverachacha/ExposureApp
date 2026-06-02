@@ -160,6 +160,20 @@ export async function deleteOldRequests(cutoffTimestamp) {
   return deleted;
 }
 
+// --- Plain config (for user preferences, not encrypted) ---
+
+export async function getPlainConfig(key) {
+  await openDb();
+  return configDb.data.config[key] ?? null;
+}
+
+export async function setPlainConfig(key, value) {
+  await openDb();
+  configDb.data.config[key] = value;
+  await configDb.write();
+}
+
+
 process.on('exit', async () => {
   try { await persistDb(); } catch {}
 });

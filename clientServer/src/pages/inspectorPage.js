@@ -8,7 +8,7 @@ function truncateUrl(url, max) {
   return typeof url === 'string' && url.length > max ? url.slice(0, max) + '…' : url || '';
 }
 
-export const inspectorPage = (state, INSPECTOR_CSS) => {
+export const inspectorPage = (state, css, currentTheme = 'teal') => {
   const { info } = state;
   const safeInfo = {
     online: !!info?.online,
@@ -17,13 +17,17 @@ export const inspectorPage = (state, INSPECTOR_CSS) => {
     subdomain: info?.subdomain || '',
     port: info?.port || '',
   };
+  const nextTheme = currentTheme === 'teal' ? 'dark' : 'teal';
+  
+  const sunIcon = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="5"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg>`;
+  const moonIcon = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>`;
+  const themeIcon = currentTheme === 'teal' ? moonIcon : sunIcon;
 
-  return `
-<!DOCTYPE html>
+  return `<!DOCTYPE html>
 <html lang="en">
 <head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>ApexTunnel Inspector</title>
-<style>${INSPECTOR_CSS}</style>
+<style>${css}</style>
 </head>
 <body>
 <div class="header">
@@ -35,6 +39,7 @@ export const inspectorPage = (state, INSPECTOR_CSS) => {
 <span>${safeInfo.isPremium ? '⭐ Premium' : '○ Free'}</span>
 </div>
 </div>
+<button class="theme-toggle" id="theme-btn" onclick="toggleTheme()" title="Switch to ${nextTheme} theme">${themeIcon}</button>
 </div>
 <div class="container">
 <div class="status-bar">
@@ -75,6 +80,19 @@ export const inspectorPage = (state, INSPECTOR_CSS) => {
 </div>
 </div>
 <script>
+async function toggleTheme() {
+  const btn = document.getElementById('theme-btn');
+  btn.disabled = true;
+  btn.innerHTML = '...';
+  try {
+    const res = await fetch('/api/theme', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ theme: '${nextTheme}' }) });
+    if (res.ok) window.location.reload();
+    else throw new Error('Failed');
+  } catch {
+    btn.innerHTML = 'Error';
+    setTimeout(() => { btn.disabled = false; btn.innerHTML = '${themeIcon.replace(/'/g, "\\'")}'; }, 1000);
+  }
+}
 function formatBytes(bytes) {
   if (!bytes) return '0 B';
   const k = 1024, sizes = ['B','KB','MB','GB'];
@@ -224,8 +242,8 @@ function createDetailPanel(r, reqId) {
   const resHeadersJson = r.resHeaders && Object.keys(r.resHeaders).length ? JSON.stringify(r.resHeaders, null, 2) : null;
   const reqBodyId = r.reqBodyPath ? r.reqBodyPath.replace(/.*[/\\\\]/, '') : null;
   const resBodyId = r.resBodyPath ? r.resBodyPath.replace(/.*[/\\\\]/, '') : null;
-  const reqBodyDownload = reqBodyId ? '<a href="/api/body/' + escapeHtml(reqBodyId) + '" target="_blank" style="color:#00aaff">Download request body (' + formatBytes(r.reqBodySize || 0) + ')</a>' : '';
-  const resBodyDownload = resBodyId ? '<a href="/api/body/' + escapeHtml(resBodyId) + '" target="_blank" style="color:#00ff88">Download response body (' + formatBytes(r.resBodySize || 0) + ')</a>' : '';
+  const reqBodyDownload = reqBodyId ? '<a href="/api/body/' + escapeHtml(reqBodyId) + '" target="_blank" style="color:var(--method-post)">Download request body (' + formatBytes(r.reqBodySize || 0) + ')</a>' : '';
+  const resBodyDownload = resBodyId ? '<a href="/api/body/' + escapeHtml(resBodyId) + '" target="_blank" style="color:var(--success)">Download response body (' + formatBytes(r.resBodySize || 0) + ')</a>' : '';
   return '<div class="detail-panel">' +
     '<div class="detail-section"><h4>Request Headers <button class="copy-btn" onclick="copyToClipboard(' + JSON.stringify(reqHeadersJson || '').replace(/"/g, '&quot;') + ', this)">Copy</button></h4><pre>' + (reqHeadersJson ? syntaxHighlightJson(reqHeadersJson) : '<em class="empty-hint">No headers captured</em>') + '</pre></div>' +
     (reqBodyId || reqBodyDownload ? '<div class="detail-section"><h4>Request Body</h4><div class="body-preview req-body-preview" data-loaded="false"><em class="empty-hint">Loading preview...</em></div><div class="body-actions">' + reqBodyDownload + '</div></div>' : '') +
@@ -239,7 +257,7 @@ const es = new EventSource('/api/stream');
 function addRequestRow(r, isNew = true) {
   r._timestamp = r._timestamp || Date.now();
   r._detailId = r._detailId || ('req-' + Date.now() + '-' + Math.random().toString(36).slice(2, 7));
-  const statusColor = r.status >= 500 ? '#ff4444' : r.status >= 400 ? '#ffcc00' : '#00ff88';
+  const statusColor = r.status >= 500 ? 'var(--error)' : r.status >= 400 ? 'var(--warning)' : 'var(--success)';
   const reqId = r._detailId;
   const rawTime = r.time || new Date().toISOString();
   const displayTime = rawTime.includes('T') ? rawTime.slice(11, 19) : rawTime;

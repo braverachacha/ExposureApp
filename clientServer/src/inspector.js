@@ -7,7 +7,8 @@ import { randomBytes } from 'crypto';
 import { C } from './colors.js';
 import { CONFIG } from './config.js';
 import { getRecentRequests, insertRequest } from './db/index.js';
-import { INSPECTOR_CSS } from './styles.js';
+import { getPlainConfig, setPlainConfig } from './db/index.js';
+import { generateCSS } from './styles.js';
 import { inspectorPage } from './pages/inspectorPage.js';
 
 const MAX_BODY_SIZE = 100 * 1024 * 1024;
@@ -152,11 +153,38 @@ export async function startInspector(getState) {
   return null;
 }
 
+async function getCurrentTheme() {
+  const stored = await getPlainConfig('inspectorTheme');
+  return stored === 'dark' ? 'dark' : 'teal';
+}
+
 async function handleRoutes(req, res, getState) {
   if (req.url === '/') {
     const state = getState();
+    const theme = await getCurrentTheme();
+    const css = generateCSS(theme);
     res.writeHead(200, { 'Content-Type': 'text/html' });
-    res.end(inspectorPage(state, INSPECTOR_CSS));
+    res.end(inspectorPage(state, css, theme));
+    return;
+  }
+  if (req.url === '/api/theme' && req.method === 'GET') {
+    const theme = await getCurrentTheme();
+    res.writeHead(200, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify({ theme }));
+    return;
+  }
+  if (req.url === '/api/theme' && req.method === 'POST') {
+    try {
+      const body = await readPostBody(req);
+      const data = JSON.parse(body);
+      const theme = data.theme === 'dark' ? 'dark' : 'teal';
+      await setPlainConfig('inspectorTheme', theme);
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ theme }));
+    } catch {
+      res.writeHead(400);
+      res.end('Bad request');
+    }
     return;
   }
   if (req.url === '/api/requests') {
