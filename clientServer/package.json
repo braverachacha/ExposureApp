@@ -1,6 +1,6 @@
 {
   "name": "apex-client",
-  "version": "2.0.1",
+  "version": "2.1.0",
   "description": "Local bridge for ApexTunnel, proxying local traffic to the public internet.",
   "keywords": [
     "tunnel",
@@ -21,19 +21,31 @@
   ],
   "main": "dist/bundle.cjs",
   "bin": {
-    "apex": "./client.js"
+    "apex": "./dist/bundle.cjs"
   },
   "scripts": {
     "start": "node client.js",
     "dev": "nodemon client.js",
-    "bundle": "mkdir -p dist && esbuild client.js --bundle --platform=node --target=node18 --outfile=dist/bundle.cjs --format=cjs --minify --legal-comments=none --tree-shaking=true --external:blessed",
-    "build:desktop": "pnpm run bundle && pkg dist/bundle.cjs --target node18-linux-x64,node18-win-x64 --output bin/apex-client",
-    "build:arm64": "pnpm run bundle && pkg dist/bundle.cjs --target node18-linux-arm64 --output bin/apex-client-arm64",
-    "build:termux": "pnpm run bundle && pkg dist/bundle.cjs --target node18-linuxstatic-arm64 --output bin/apex-termux"
+    "bundle": "mkdir -p dist && esbuild client.js --bundle --platform=node --target=node18 --outfile=dist/bundle.cjs --format=cjs --legal-comments=none --tree-shaking=true --external:blessed --external:lowdb --external:lowdb/node",
+    "build:desktop": "pnpm run bundle && pkg . --targets node18-linux-x64,node18-win-x64 --out-path bin/",
+    "build:arm64": "pnpm run bundle && pkg . --target node18-linux-arm64 --out-path bin/",
+    "build:termux": "pnpm run bundle && pkg . --target node18-linuxstatic-arm64 --out-path bin/"
   },
   "author": "BraveraTech",
   "license": "ISC",
   "packageManager": "pnpm@10.33.0",
+  "pkg": {
+    "assets": [
+      "node_modules/blessed/**/*",
+      "node_modules/lowdb/**/*"
+    ],
+    "scripts": [
+      "dist/bundle.cjs"
+    ],
+    "targets": [
+      "node18"
+    ]
+  },
   "devDependencies": {
     "esbuild": "^0.25.0",
     "nodemon": "^3.1.14",
