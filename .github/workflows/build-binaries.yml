@@ -30,24 +30,45 @@ jobs:
           cd clientServer
           pnpm install --frozen-lockfile
 
-      - name: Build Desktop Binaries (Linux & Windows x64)
+      - name: Build Linux x64
         run: |
           cd clientServer
-          pnpm run build:desktop
+          pnpm run build:linux-x64
 
-      - name: Build ARM64 Binary
+      - name: Build Linux ARM64
         run: |
           cd clientServer
-          pnpm run build:arm64
+          pnpm run build:linux-arm64
 
-      - name: Build Termux Binary
+      - name: Build Windows x64
+        run: |
+          cd clientServer
+          pnpm run build:win-x64
+
+      - name: Build macOS x64
+        run: |
+          cd clientServer
+          pnpm run build:macos-x64 || echo "macOS build skipped (optional)"
+
+      - name: Build Termux (linuxstatic-arm64)
+        id: termux
+        continue-on-error: true
         run: |
           cd clientServer
           pnpm run build:termux
+        env:
+          PKG_BUILD_PATH: /tmp/pkg-build
+
+      - name: Collect binaries
+        run: |
+          cd clientServer
+          mkdir -p release
+          cp -v dist/apex-* release/ 2>/dev/null || true
+          ls -la release/
 
       - name: Upload Binaries as Artifacts
         uses: actions/upload-artifact@v4
         with:
           name: apex-client-binaries
-          path: clientServer/bin/
+          path: clientServer/release/
           retention-days: 5

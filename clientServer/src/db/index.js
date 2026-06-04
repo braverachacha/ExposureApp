@@ -1,65 +1,25 @@
-import fs from 'fs';
 import os from 'os';
 import path from 'path';
-import { Low } from 'lowdb';
-import { JSONFile, TextFile } from 'lowdb/node';
+import { JsonDb } from './json-db.js';
 import { encrypt, decrypt } from './crypto.js';
 
 export const DB_PATH = path.join(os.homedir(), '.apextunnel.db');
 export const REQUESTS_DB_PATH = path.join(os.homedir(), '.apextunnel.requests.json');
 
-// TextFile with custom parse/stringify for encryption
-class EncryptedFile extends TextFile {
-  constructor(filename) {
-    super(filename);
-  }
-  
-  async read() {
-    const text = await super.read();
-    if (!text || !text.trim()) return null;
-    try {
-      const json = decrypt(text);
-      return JSON.parse(json);
-    } catch (err) {
-      throw new Error(
-        `DECRYPTION_FAILED: ${err.message}. ` +
-        `Run "apex authtoken <token>" to re-sync.`
-      );
-    }
-  }
-  
-  async write(data) {
-    const json = JSON.stringify(data);
-    const encrypted = encrypt(json);
-    await super.write(encrypted);
-  }
-}
-
-const encryptedAdapter = new EncryptedFile(DB_PATH);
-const requestsAdapter = new JSONFile(REQUESTS_DB_PATH);
+const defaultConfigData = { config: {} };
+const defaultRequestsData = { requests: [] };
 
 let configDb = null;
 let requestsDb = null;
 
-const defaultConfigData = { config: {} };
-const defaultRequestsData = { requests: [] };
-
 export async function openDb() {
   if (configDb) return configDb;
 
-  configDb = new Low(encryptedAdapter, defaultConfigData);
-  await configDb.read();
-  if (!configDb.data) {
-    configDb.data = structuredClone(defaultConfigData);
-    await configDb.write();
-  }
+  configDb = new JsonDb(DB_PATH, { encryptFn: encrypt, decryptFn: decrypt });
+  await configDb.read(defaultConfigData);
 
-  requestsDb = new Low(requestsAdapter, defaultRequestsData);
-  await requestsDb.read();
-  if (!requestsDb.data) {
-    requestsDb.data = structuredClone(defaultRequestsData);
-    await requestsDb.write();
-  }
+  requestsDb = new JsonDb(REQUESTS_DB_PATH);
+  await requestsDb.read(defaultRequestsData);
 
   return configDb;
 }
@@ -79,55 +39,55 @@ export function getRequestsDb() {
 }
 
 export async function persistDb() {
-  if (configDb) await configDb.write();
-  if (requestsDb) await requestsDb.write();
+  if (configDb) configDb.write();
+  if (requestsDb) requestsDb.write();
 }
 
 export async function closeDb() {
-  await persistDb();
+  persistDb();
   configDb = null;
   requestsDb = null;
 }
 
 export async function getEncryptedConfig(key) {
   await openDb();
-  const encryptedValue = configDb.data.config[key];
-  if (encryptedValue === undefined || encryptedValue === null) return null;
-  if (typeof encryptedValue !== 'string' || !encryptedValue.startsWith('v1:')) {
-    return encryptedValue;
+  const value = configDb.get().config[key];
+  if (value === undefined || value === null) return null;
+  if (typeof value === 'string' && value.startsWith('v1:')) {
+    return decrypt(value);
   }
-  return decrypt(encryptedValue);
+  return value;
 }
+
 
 export async function setEncryptedConfig(key, value) {
   await openDb();
-  const encrypted = encrypt(value);
-  configDb.data.config[key] = encrypted;
-  await configDb.write();
+  configDb.get().config[key] = value;
+  configDb.write();
 }
 
 export async function deleteEncryptedConfig(key) {
   await openDb();
-  delete configDb.data.config[key];
-  await configDb.write();
+  delete configDb.get().config[key];
+  configDb.write();
 }
 
 export async function hasConfigKey(key) {
   await openDb();
-  return key in configDb.data.config;
+  return key in configDb.get().config;
 }
 
 export async function migratePlaintextConfig() {
   await openDb();
   let migrated = 0;
-  for (const [key, value] of Object.entries(configDb.data.config)) {
+  for (const [key, value] of Object.entries(configDb.get().config)) {
     if (typeof value === 'string' && !value.startsWith('v1:')) {
-      configDb.data.config[key] = encrypt(value);
+      configDb.get().config[key] = encrypt(value);
       migrated++;
     }
   }
   if (migrated > 0) {
-    await configDb.write();
+    configDb.write();
     console.log(`[CRYPTO] Migrated ${migrated} plaintext config value(s).`);
   }
   return migrated;
@@ -150,38 +110,32 @@ export async function insertRequest(reqData) {
     resBodySize: reqData.resBodySize ?? 0,
     createdAt: Math.floor(Date.now() / 1000),
   };
-  requestsDb.data.requests.push(entry);
-  await requestsDb.write();
+  requestsDb.get().requests.push(entry);
+  requestsDb.write();
   return entry;
 }
 
 export async function getRecentRequests(limit = 100) {
   await openDb();
-  return requestsDb.data.requests.slice().sort((a, b) => b.createdAt - a.createdAt).slice(0, limit);
+  return requestsDb.get().requests.slice().sort((a, b) => b.createdAt - a.createdAt).slice(0, limit);
 }
 
 export async function deleteOldRequests(cutoffTimestamp) {
   await openDb();
-  const before = requestsDb.data.requests.length;
-  requestsDb.data.requests = requestsDb.data.requests.filter(r => r.createdAt >= cutoffTimestamp);
-  const deleted = before - requestsDb.data.requests.length;
-  if (deleted > 0) await requestsDb.write();
+  const before = requestsDb.get().requests.length;
+  requestsDb.get().requests = requestsDb.get().requests.filter(r => r.createdAt >= cutoffTimestamp);
+  const deleted = before - requestsDb.get().requests.length;
+  if (deleted > 0) requestsDb.write();
   return deleted;
 }
 
-// --- Plain config (for user preferences, not encrypted) ---
-
 export async function getPlainConfig(key) {
   await openDb();
-  return configDb.data.config[key] ?? null;
+  return configDb.get().config[key] ?? null;
 }
 
 export async function setPlainConfig(key, value) {
   await openDb();
-  configDb.data.config[key] = value;
-  await configDb.write();
+  configDb.get().config[key] = value;
+  configDb.write();
 }
-
-process.on('exit', async () => {
-  try { await persistDb(); } catch {}
-});
