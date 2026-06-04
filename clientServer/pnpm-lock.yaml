@@ -11,12 +11,9 @@ importers:
       blessed:
         specifier: ^0.1.81
         version: 0.1.81
-      dotenv:
-        specifier: ^17.4.2
-        version: 17.4.2
       lowdb:
-        specifier: ^7.0.1
-        version: 7.0.1
+        specifier: 6.0.1
+        version: 6.0.1
     devDependencies:
       esbuild:
         specifier: ^0.25.0
@@ -335,10 +332,6 @@ packages:
     resolution: {integrity: sha512-WkrWp9GR4KXfKGYzOLmTuGVi1UWFfws377n9cc55/tb6DuqyF6pcQ5AbiHEshaDpY9v6oaSr2XCDidGmMwdzIA==}
     engines: {node: '>=8'}
 
-  dotenv@17.4.2:
-    resolution: {integrity: sha512-nI4U3TottKAcAD9LLud4Cb7b2QztQMUEfHbvhTH09bqXTxnSie8WnjPALV/WMCrJZ6UV/qHJ6L03OqO3LcdYZw==}
-    engines: {node: '>=12'}
-
   emoji-regex@8.0.0:
     resolution: {integrity: sha512-MSjYzcWNOA0ewAHpz0MxpYFvwg6yjy1NG3xteoqz644VCo/RPgnr1/GGt+ic3iJTzQ8Eu3TdM14SawnVUmGE6A==}
 
@@ -487,9 +480,9 @@ packages:
   jsonfile@6.2.1:
     resolution: {integrity: sha512-zwOTdL3rFQ/lRdBnntKVOX6k5cKJwEc1HdilT71BWEu7J41gXIB2MRp+vxduPSwZJPWBxEzv4yH1wYLJGUHX4Q==}
 
-  lowdb@7.0.1:
-    resolution: {integrity: sha512-neJAj8GwF0e8EpycYIDFqEPcx9Qz4GUho20jWFR7YiFeXzF1YMLdxB36PypcTSPMA+4+LvgyMacYhlr18Zlymw==}
-    engines: {node: '>=18'}
+  lowdb@6.0.1:
+    resolution: {integrity: sha512-1ktuKYLlQzAWwl4/PQkIr8JzNXgcTM6rAhpXaQ6BR+VwI98Q8ZwMFhBOn9u0ldcW3K/WWzhYpS3xyGTshgVGzA==}
+    engines: {node: '>=16'}
 
   merge2@1.4.1:
     resolution: {integrity: sha512-8q7VEgMJW4J8tcfVPy8g09NcQwZdbwFEqhe/WZkoIzjn/3TGDwtOCYtXGxA3O8tPzpczCCDgv+P2P5y00ZJOOg==}
@@ -653,9 +646,9 @@ packages:
     resolution: {integrity: sha512-g9Q1haeby36OSStwb4ntCGGGaKsaVSjQ68fBxoQcutl5fS1vuY18H3wSt3jFyFtrkx+Kz0V1G85A4MyAdDMi2Q==}
     engines: {node: '>=8'}
 
-  steno@4.0.2:
-    resolution: {integrity: sha512-yhPIQXjrlt1xv7dyPQg2P17URmXbuM5pdGkpiMB3RenprfiBlvK415Lctfe0eshk90oA7/tNq7WEiMK8RSP39A==}
-    engines: {node: '>=18'}
+  steno@3.2.0:
+    resolution: {integrity: sha512-zPKkv+LqoYffxrtD0GIVA08DvF6v1dW02qpP5XnERoobq9g3MKcTSBTi08gbGNFMNRo3TQV/6kBw811T1LUhKg==}
+    engines: {node: '>=16'}
 
   stream-meter@1.0.4:
     resolution: {integrity: sha512-4sOEtrbgFotXwnEuzzsQBYEV1elAeFSO8rSGeTwabuX1RRn/kEq9JVH7I0MRBhKVRR0sJkr0M0QCH7yOLf9fhQ==}
@@ -975,8 +968,6 @@ snapshots:
     dependencies:
       path-type: 4.0.0
 
-  dotenv@17.4.2: {}
-
   emoji-regex@8.0.0: {}
 
   end-of-stream@1.4.5:
@@ -1136,9 +1127,9 @@ snapshots:
     optionalDependencies:
       graceful-fs: 4.2.11
 
-  lowdb@7.0.1:
+  lowdb@6.0.1:
     dependencies:
-      steno: 4.0.2
+      steno: 3.2.0
 
   merge2@1.4.1: {}
 
@@ -1325,7 +1316,7 @@ snapshots:
 
   slash@3.0.0: {}
 
-  steno@4.0.2: {}
+  steno@3.2.0: {}
 
   stream-meter@1.0.4:
     dependencies:
