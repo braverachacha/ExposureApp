@@ -31,9 +31,8 @@
     "build:linux-x64": "pnpm run bundle && pkg . --target node18-linux-x64 --output dist/apex-linux-x64",
     "build:linux-arm64": "pnpm run bundle && pkg . --target node18-linux-arm64 --output dist/apex-linux-arm64",
     "build:win-x64": "pnpm run bundle && pkg . --target node18-win-x64 --output dist/apex-win-x64",
-    "build:macos-x64": "pnpm run bundle && pkg . --target node18-macos-x64 --output dist/apex-macos-x64",
     "build:termux": "pnpm run bundle && pkg . --target node18-linuxstatic-arm64 --output dist/apex-termux",
-    "build:all": "pnpm run build:linux-x64 && pnpm run build:linux-arm64 && pnpm run build:win-x64 && pnpm run build:macos-x64"
+    "build:all": "pnpm run build:linux-x64 && pnpm run build:linux-arm64 && pnpm run build:win-x64"
   },
   "author": "BraveraTech",
   "license": "ISC",
