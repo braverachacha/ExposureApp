@@ -3,9 +3,21 @@
   "version": "2.1.0",
   "description": "Local bridge for ApexTunnel, proxying local traffic to the public internet.",
   "keywords": [
-    "tunnel", "proxy", "local-bridge", "port-forwarding", "reverse-proxy",
-    "expose-localhost", "ngrok-alternative", "ssh-tunnel", "http-proxy",
-    "websocket-tunnel", "arm64", "linux-x64", "windows-x64", "cross-platform", "cli-tool"
+    "tunnel",
+    "proxy",
+    "local-bridge",
+    "port-forwarding",
+    "reverse-proxy",
+    "expose-localhost",
+    "ngrok-alternative",
+    "ssh-tunnel",
+    "http-proxy",
+    "websocket-tunnel",
+    "arm64",
+    "linux-x64",
+    "windows-x64",
+    "cross-platform",
+    "cli-tool"
   ],
   "main": "dist/bundle.cjs",
   "type": "module",
@@ -43,7 +55,6 @@
     "pkg": "^5.8.1"
   },
   "dependencies": {
-    "blessed": "^0.1.81",
-    "dotenv": "^17.4.2"
+    "blessed": "^0.1.81"
   }
 }
