@@ -20,6 +20,7 @@
     "cli-tool"
   ],
   "main": "dist/bundle.cjs",
+  "type": "module",
   "bin": {
     "apex": "./dist/bundle.cjs"
   },

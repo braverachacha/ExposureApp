@@ -2,14 +2,20 @@ import fs from 'fs';
 import os from 'os';
 import path from 'path';
 import { Low } from 'lowdb';
-import { DataFile, JSONFile } from 'lowdb/node';
+import { JSONFile, TextFile } from 'lowdb/node';
 import { encrypt, decrypt } from './crypto.js';
 
 export const DB_PATH = path.join(os.homedir(), '.apextunnel.db');
 export const REQUESTS_DB_PATH = path.join(os.homedir(), '.apextunnel.requests.json');
 
-const encryptedAdapter = new DataFile(DB_PATH, {
-  parse: (text) => {
+// TextFile with custom parse/stringify for encryption
+class EncryptedFile extends TextFile {
+  constructor(filename) {
+    super(filename);
+  }
+  
+  async read() {
+    const text = await super.read();
     if (!text || !text.trim()) return null;
     try {
       const json = decrypt(text);
@@ -20,13 +26,16 @@ const encryptedAdapter = new DataFile(DB_PATH, {
         `Run "apex authtoken <token>" to re-sync.`
       );
     }
-  },
-  stringify: (data) => {
+  }
+  
+  async write(data) {
     const json = JSON.stringify(data);
-    return encrypt(json);
-  },
-});
+    const encrypted = encrypt(json);
+    await super.write(encrypted);
+  }
+}
 
+const encryptedAdapter = new EncryptedFile(DB_PATH);
 const requestsAdapter = new JSONFile(REQUESTS_DB_PATH);
 
 let configDb = null;
@@ -172,7 +181,6 @@ export async function setPlainConfig(key, value) {
   configDb.data.config[key] = value;
   await configDb.write();
 }
-
 
 process.on('exit', async () => {
   try { await persistDb(); } catch {}
