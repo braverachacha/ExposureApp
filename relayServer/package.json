@@ -4,25 +4,19 @@
   "description": "High-performance TCP/HTTP relay for the ApexTunnel ecosystem.",
   "main": "relay.js",
   "type": "module",
-  "scripts": {
-    "start": "node relay.js",
-    "pm2": "pm2 start relay.js --name apextunnel",
-    "pm2:restart": "pm2 restart apextunnel --update-env",
+  "scripts": {                                                                     "start": "node relay.js",
+    "pm2": "pm2 start relay.js --name apextunnel",                                 "pm2:restart": "pm2 restart apextunnel --update-env",
     "pm2:logs": "pm2 logs apextunnel",
     "pm2:stop": "pm2 stop apextunnel",
     "dev": "nodemon relay.js"
   },
-  "keywords": [],
-  "author": "BraveraTech",
-  "license": "ISC",
-  "packageManager": "pnpm@10.33.2",
+  "keywords": [],                                                                "author": "BraveraTech",
+  "license": "ISC",                                                              "packageManager": "pnpm@10.33.2",
   "devDependencies": {
     "nodemon": "^3.1.14"
-  },
-  "dependencies": {
+  },                                                                             "dependencies": {
     "dotenv": "^16.4.7",
     "pino": "^9.6.0",
-    "pino-pretty": "^13.0.0",
-    "semver": "^7.7.4"
+    "pino-pretty": "^13.0.0",                                                      "semver": "^7.7.4"
   }
 }
