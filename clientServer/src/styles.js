@@ -3,38 +3,38 @@
 export const THEMES = {
   teal: {
     name: 'Teal',
-    bg: '#e2e8f0',
-    bgSecondary: '#d1d8e0',
-    bgTertiary: '#c5cdd8',
-    border: '#a0aec0',
-    text: '#1e293b',
-    textDim: '#475569',
+    bg: '#1a1f2e',
+    bgSecondary: '#232837',
+    bgTertiary: '#2a3042',
+    border: '#3a4055',
+    text: '#e2e8f0',
+    textDim: '#94a3b8', 
     textMuted: '#64748b',
-    brand: '#0d9488',
-    brandDim: 'rgba(13,148,136,0.12)',
-    brandHover: 'rgba(13,148,136,0.20)',
-    success: '#059669',
-    warning: '#d97706',
-    error: '#dc2626',
-    errorDim: 'rgba(220,38,38,0.12)',
-    errorHover: 'rgba(220,38,38,0.20)',
-    methodGet: '#0d9488',
-    methodGetBg: 'rgba(13,148,136,0.15)',
-    methodPost: '#0284c7',
-    methodPostBg: 'rgba(2,132,199,0.15)',
-    methodPut: '#d97706',
-    methodPutBg: 'rgba(217,119,6,0.15)',
-    methodPatch: '#7c3aed',
-    methodPatchBg: 'rgba(124,58,237,0.15)',
-    methodDelete: '#dc2626',
-    methodDeleteBg: 'rgba(220,38,38,0.15)',
-    methodHead: '#64748b',
-    methodHeadBg: 'rgba(100,116,139,0.15)',
-    jsonKey: '#0369a1',
-    jsonString: '#0d9488',
-    jsonNumber: '#d97706',
-    jsonBoolean: '#7c3aed',
-    jsonNull: '#7c3aed',
+    brand: '#2dd4bf',
+    brandDim: 'rgba(45,212,191,0.12)',
+    brandHover: 'rgba(45,212,191,0.25)',
+    success: '#34d399',
+    warning: '#fbbf24',
+    error: '#f87171',
+    errorDim: 'rgba(248,113,113,0.12)',
+    errorHover: 'rgba(248,113,113,0.25)',
+    methodGet: '#2dd4bf',
+    methodGetBg: 'rgba(45,212,191,0.15)',
+    methodPost: '#38bdf8',
+    methodPostBg: 'rgba(56,189,248,0.15)',
+    methodPut: '#fbbf24',
+    methodPutBg: 'rgba(251,191,36,0.15)',
+    methodPatch: '#c084fc',
+    methodPatchBg: 'rgba(192,132,252,0.15)',
+    methodDelete: '#f87171',
+    methodDeleteBg: 'rgba(248,113,113,0.15)',
+    methodHead: '#94a3b8',
+    methodHeadBg: 'rgba(148,163,184,0.15)',
+    jsonKey: '#38bdf8',
+    jsonString: '#a5f3fc',
+    jsonNumber: '#fbbf24',
+    jsonBoolean: '#c084fc',
+    jsonNull: '#c084fc',
   },
   dark: {
     name: 'Dark',
@@ -270,7 +270,7 @@ td {
   overflow-x: auto;
   white-space: pre-wrap;
   word-break: break-all;
-  max-height: 300px;
+  max-height: 500px;
   overflow-y: auto;
   position: relative;
 }
@@ -397,7 +397,7 @@ td {
   overflow-x: auto;
   white-space: pre-wrap;
   word-break: break-all;
-  max-height: 200px;
+  max-height: 500px;
   overflow-y: auto;
 }
 .body-actions { display: flex; gap: 8px; margin-top: 8px; }
@@ -409,7 +409,7 @@ td {
   margin-top: 8px;
   font-size: 11px;
   color: var(--text-dim);
-  max-height: 200px;
+  max-height: 500px;
   overflow-y: auto;
 }
 .theme-toggle {
