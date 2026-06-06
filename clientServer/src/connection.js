@@ -1,8 +1,6 @@
 //  clientServer/src/connection.js
 
-import net from 'net';
 import tls from 'tls';
-import fs from 'fs';
 import {
   ProtocolParser, FRAME_TYPES,
   encodeJson, encodeResponseStart, encodeBodyChunk, encodeBodyEnd, encodePong,
@@ -11,27 +9,18 @@ import {
 export class TunnelConnection {
   constructor({
     host, port, token, subdomain, localPort,
-    useTls = false, caPath = null,
     onRegistered, onError, onRequest,
     logger = console,
-    detectTls = true,
   }) {
     this.host = host;
     this.port = port;
     this.token = token;
     this.subdomain = subdomain;
     this.localPort = localPort;
-    this.useTls = useTls;
-    this.caPath = caPath;
     this.onRegistered = onRegistered;
     this.onError = onError;
     this.onRequest = onRequest;
     this.logger = logger;
-
-    // TLS detection: try TLS first, fallback to plaintext if it fails
-    this.detectTls = detectTls;
-    this.tlsAttempted = false;
-    this.tlsFailed = false;
 
     this.socket = null;
     this.parser = null;
@@ -54,81 +43,20 @@ export class TunnelConnection {
       this._reconnect();
     };
 
-    const connectOptions = {
+    this.logger.info(`Connecting via TLS to ${this.host}:${this.port}`);
+
+    this.socket = tls.connect({
       host: this.host,
       port: this.port,
-    };
+      rejectUnauthorized: true,
+      // Let's Encrypt certs are trusted by system CA store — no custom CA needed
+      servername: this.host, // SNI: required for proper TLS handshake
+    }, () => this._onConnect());
 
-    // Determine whether to attempt TLS on this connection attempt
-    const shouldAttemptTls = this.useTls || (this.detectTls && !this.tlsFailed);
-
-    if (shouldAttemptTls && !this.tlsFailed) {
-      this.logger.info(
-        `Attempting TLS connection to ${this.host}:${this.port}${
-          this.tlsAttempted ? ' (retry)' : ''
-        }`
-      );
-
-      connectOptions.rejectUnauthorized = true;
-      if (this.caPath && fs.existsSync(this.caPath)) {
-        try {
-          connectOptions.ca = fs.readFileSync(this.caPath);
-          this.logger.debug(`Using CA certificate from ${this.caPath}`);
-        } catch (err) {
-          this.logger.warn(`Failed to read CA certificate: ${err.message}`);
-        }
-      }
-
-      this.socket = tls.connect(connectOptions, () => this._onConnect());
-
-      // Handle TLS-specific errors
-      this.socket.once('error', (err) => {
-        // If TLS is in detection mode (not required), switch to plaintext
-        if (
-          this.detectTls &&
-          !this.useTls &&
-          !this.tlsAttempted &&
-          (err.code === 'ECONNREFUSED' ||
-            err.code === 'ENOTFOUND' ||
-            err.code === 'EHOSTUNREACH' ||
-            err.code === 'ERR_TLS_CERT_HAS_EXPIRED' ||
-            err.code === 'ERR_TLS_CERT_SELF_SIGNED' ||
-            err.code === 'ERR_TLS_CERT_UNKNOWN')
-        ) {
-          this.logger.warn(
-            `TLS connection failed (${err.code}). Falling back to plaintext mode.`
-          );
-          this.tlsFailed = true;
-          this.tlsAttempted = true;
-
-          // Destroy current socket and reconnect without TLS
-          try {
-            this.socket.destroy();
-          } catch (destroyErr) {
-            // Ignore destroy errors
-          }
-          this.socket = null;
-          this._reconnect();
-          return;
-        }
-
-        // For TLS-required mode, propagate the error
-        this.logger.error(`TLS connection error: ${err.message}`);
-      });
-
-      this.tlsAttempted = true;
-    } else {
-      // Plaintext connection
-      const mode = this.tlsFailed ? '(TLS failed, using plaintext)' : '(plaintext)';
-      this.logger.info(`Connecting to ${this.host}:${this.port} ${mode}`);
-      this.socket = net.connect(connectOptions, () => this._onConnect());
-    }
-
-    // Shared socket event handlers
     this.socket.on('data', (chunk) => this.parser.feed(chunk));
 
     this.socket.on('error', (err) => {
-      this.logger.error(`Socket error: ${err.message}`);
+      this.logger.error(`TLS socket error: ${err.message}`);
     });
 
     this.socket.on('close', () => {
@@ -144,19 +72,11 @@ export class TunnelConnection {
   }
 
   _onConnect() {
-    // Reset backoff on successful connection
     this.reconnectDelay = 3000;
     this.socket.setNoDelay(true);
-
-    // Keep-alive timeout longer than the relay's ping interval (30s) so the
-    // relay's own heartbeat drives liveness detection, not the OS TCP timer.
     this.socket.setTimeout(90000);
+    this.logger.info('TLS connected. Registering…');
 
-    // Log connection mode
-    const tlsMode = this.socket instanceof tls.TLSSocket ? 'TLS' : 'plaintext';
-    this.logger.info(`Connected via ${tlsMode}. Registering…`);
-
-    // Send registration message
     this.socket.write(
       encodeJson({
         type: 'register',
@@ -168,19 +88,15 @@ export class TunnelConnection {
   }
 
   _handleFrame(type, payload) {
-    // ── Control frames
     if (type === FRAME_TYPES.PING) {
-      // Relay is probing liveness — respond immediately.
       this._sendPong();
       return;
     }
 
     if (type === FRAME_TYPES.PONG) {
-      // Relay acknowledged one of our earlier pongs; nothing to do.
       return;
     }
 
-    // ── JSON control
     if (type === FRAME_TYPES.JSON_CONTROL) {
       if (payload.type === 'error') {
         if (payload.code === 'SUBDOMAIN_IN_USE') {
@@ -206,11 +122,7 @@ export class TunnelConnection {
       }
     }
 
-    // ── Request frames
     if (type === FRAME_TYPES.REQUEST_START) {
-      // Tag the payload so client.js can dispatch on msg.type === 'request'.
-      // The raw REQUEST_START payload carries no .type field; without this tag
-      // the dispatcher's check always failed and proxyRequest() was never called
       this.onRequest?.({ ...payload, type: 'request' });
       return;
     }
@@ -247,8 +159,6 @@ export class TunnelConnection {
       this.connect();
     }, totalDelay);
   }
-
-  // ── Outbound helpers
 
   sendResponseStart(requestId, statusCode, headers, bodyExpected) {
     if (!this.socket || this.socket.destroyed) return;

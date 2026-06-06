@@ -1,8 +1,8 @@
-// relayServer/src/relay.js 
+// relayServer/relay.js 
 
-import net from 'net';
 import tls from 'tls';
 import http from 'http';
+import https from 'https';
 import crypto from 'crypto';
 import 'dotenv/config';
 import logger from './logger.js';
@@ -17,7 +17,7 @@ import { RateLimiter } from './src/rateLimiter.js';
 import { getClientIp, sanitizeHeaders, escapeHtml } from './src/security.js';
 import { metrics } from './src/metrics.js';
 import { BackpressureController } from './src/backpressure.js';
-import { getTlsOptions, createSecureServer } from './src/tls.js';
+import { getTlsOptions } from './src/tls.js';
 import { CONFIG, validateConfig } from './src/config.js';
 import { C } from './src/colors.js';
 
@@ -225,17 +225,19 @@ function createTcpConnectionHandler(socket) {
   });
 }
 
+// ── Load TLS options (shared by tunnel and public HTTP) ─────────────────────
 const tlsOptions = getTlsOptions();
-let tcpServer;
-if (tlsOptions) {
-  tcpServer = createSecureServer(tlsOptions, createTcpConnectionHandler);
-  logger.info('TLS enabled for TCP tunnel');
-} else {
-  tcpServer = net.createServer(createTcpConnectionHandler);
-  logger.info('TLS NOT enabled for TCP tunnel — running in plaintext');
+if (!tlsOptions) {
+  logger.error('TLS certificates are required but not configured. Set TLS_KEY_PATH and TLS_CERT_PATH.');
+  process.exit(1);
 }
 
-const httpServer = http.createServer((req, res) => {
+// ── TCP tunnel server: TLS for client connections ──────────────────────────
+const tcpServer = tls.createServer(tlsOptions, createTcpConnectionHandler);
+logger.info('TLS enabled for TCP tunnel (client connections)');
+
+// ── Public HTTP/HTTPS handler ──────────────────────────────────────────────
+function handlePublicRequest(req, res) {
   const clientIp = getClientIp(req);
   const startTime = performance.now();
 
@@ -363,7 +365,11 @@ const httpServer = http.createServer((req, res) => {
     method: req.method,
     statusCode: null,
   });
-});
+}
+
+// ── Public server: HTTPS (TLS required) ─────────────────────────────────────
+const httpServer = https.createServer(tlsOptions, handlePublicRequest);
+logger.info('HTTPS enabled for public traffic');
 
 const metricsServer = http.createServer((req, res) => {
   if (req.url === '/metrics') {
@@ -386,10 +392,10 @@ const metricsServer = http.createServer((req, res) => {
 });
 
 tcpServer.listen(TCP_PORT, () =>
-  logger.info(`Relay TCP listening on :${TCP_PORT} ${tlsOptions ? '(TLS)' : '(plaintext)'}`),
+  logger.info(`Relay TLS tunnel listening on :${TCP_PORT}`),
 );
 httpServer.listen(HTTP_PORT, () =>
-  logger.info(`Relay HTTP listening on :${HTTP_PORT}`),
+  logger.info(`Relay HTTPS listening on :${HTTP_PORT}`),
 );
 metricsServer.listen(METRICS_PORT, () =>
   logger.info(`Metrics available on :${METRICS_PORT}/metrics`),
