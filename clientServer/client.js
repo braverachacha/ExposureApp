@@ -1,6 +1,9 @@
 #!/usr/bin/env node
 // clientServer/client.js
 
+// import dotenv from "dotenv";
+// dotenv.config();
+
 import fs from 'fs';
 import os from 'os';
 import path from 'path';
@@ -53,7 +56,7 @@ async function main() {
   try { validateConfig(); }
   catch (err) { console.error(`${C.error}✖${C.reset} ${err.message}`); process.exit(1); }
 
-  const { relay, tls, local, app } = CONFIG;
+  const { relay, local, app } = CONFIG;
 
   const HELP = `
  ${C.brandBold}ApexTunnel v${app.version}${C.reset} — expose localhost to the internet
@@ -74,8 +77,6 @@ async function main() {
  ${C.brandBold}Env overrides:${C.reset}
    ${C.text}APEX_RELAY${C.reset}       ${C.dim}Relay hostname (default: relay.apextunnel.top)${C.reset}
    ${C.text}APEX_RELAY_PORT${C.reset}  ${C.dim}Relay port (default: 9000)${C.reset}
-   ${C.text}APEX_TLS${C.reset}         ${C.dim}Enable TLS on tunnel (default: false)${C.reset}
-   ${C.text}APEX_TLS_CA${C.reset}      ${C.dim}Path to CA certificate for self-signed TLS${C.reset}
    ${C.text}APEX_LOCAL_HOST${C.reset}  ${C.dim}Local app hostname (default: localhost)${C.reset}
 `.trimStart();
 
@@ -119,7 +120,7 @@ async function main() {
     } else {
       const masked = stored.slice(0, 8) + '••••••••' + stored.slice(-4);
       console.log(`${C.success}✔${C.reset} Token : ${C.text}${masked}${C.reset}`);
-      console.log(`   ${C.dim}Relay : ${relay.host}:${relay.port} ${tls.enabled ? '(TLS)' : ''}${C.reset}`);
+      console.log(`   ${C.dim}Relay : ${relay.host}:${relay.port}${C.reset}`);
     }
     if (dbInitResult.cleaned > 0) console.log(`   ${C.dim}DB cleanup: ${dbInitResult.cleaned} old rows removed${C.reset}`);
     if (dbInitResult.migrated > 0) console.log(`   ${C.dim}Crypto migration: ${dbInitResult.migrated} value(s) encrypted${C.reset}`);
@@ -163,8 +164,6 @@ async function main() {
   const tunnel = new TunnelConnection({
     host: relay.host, port: relay.port, token,
     subdomain: values.subdomain || '', localPort,
-    useTls: tls.enabled, caPath: tls.caPath,
-    detectTls: tls.detectMode,
     onRegistered: (info) => { setOnline({ ...info, port: String(localPort) }); },
     onError: (err) => {
       if (err.type === 'reconnecting') { setReconnecting(); return; }
@@ -178,7 +177,7 @@ async function main() {
       else if (msg.type === 'bodyChunk') {
         const req = activeRequests.get(msg.id);
         if (req && !req.bodyComplete) {
-          if (req.localReq) { const writable = req.localReq.write(msg.data); if (!writable) req.paused = true; }
+          if (reqReq) { const writable = req.localReq.write(msg.data); if (!writable) req.paused = true; }
           else { req.earlyChunks.push(msg.data); }
           if (!req.reqBodyTruncated) {
             req.reqBodySize += msg.data.length;
