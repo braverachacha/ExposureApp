@@ -138,7 +138,7 @@ export const errorPage = (code, title, message) => `<!DOCTYPE html>
     <div class="divider"></div>
     <p>${safeBold(message)}</p>
     <p><a href="/">Try Again</a></p>
-    <div class="footer">ApexTunnel v2.0.1 • BraveraTech</div>
+    <div class="footer">ApexTunnel v2.2.0 • BraveraTech</div>
   </div>
 </body>
 </html>`;

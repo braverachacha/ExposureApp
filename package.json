@@ -1,6 +1,6 @@
 {
   "name": "apextunnel",
-  "version": "2.0.1",
+  "version": "2.2.0",
   "description": "Self-hosted reverse tunnel with streaming, TLS, and rate limiting",
   "private": true,
   "type": "module",

@@ -26,7 +26,7 @@ export function getClientErrorPage(port) {
   <h1>502</h1>
   <h2>Local App Unreachable</h2>
   <p>The tunnel is active, but your local server on port <strong>${port}</strong> is not responding.</p>
-  <p class="footer">ApexTunnel v2.0.1 • BraveraTech</p>
+  <p class="footer">ApexTunnel v2.2.0 • BraveraTech</p>
 </body>
 </html>`;
 }

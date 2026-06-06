@@ -38,7 +38,7 @@ export const CONFIG = Object.freeze({
     host: '127.0.0.1',
   },
   app: {
-    version: '2.0.1',
+    version: '2.2.0',
   },
 });
 
