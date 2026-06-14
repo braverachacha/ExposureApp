@@ -1,10 +1,16 @@
 import os from 'os';
 import path from 'path';
+import fs from 'fs';
 import { JsonDb } from './json-db.js';
 import { encrypt, decrypt } from './crypto.js';
 
-export const DB_PATH = path.join(os.homedir(), '.apextunnel.db');
-export const REQUESTS_DB_PATH = path.join(os.homedir(), '.apextunnel.requests.json');
+const CONFIG_DIR = path.join(os.homedir(), '.config', 'apextunnel');
+
+export const DB_PATH = path.join(CONFIG_DIR, 'apextunnel.db');
+export const REQUESTS_DB_PATH = path.join(CONFIG_DIR, 'requests.json');
+
+const LEGACY_DB_PATH = path.join(os.homedir(), '.apextunnel.db');
+const LEGACY_REQUESTS_DB_PATH = path.join(os.homedir(), '.apextunnel.requests.json');
 
 const defaultConfigData = { config: {} };
 const defaultRequestsData = { requests: [] };
@@ -12,8 +18,27 @@ const defaultRequestsData = { requests: [] };
 let configDb = null;
 let requestsDb = null;
 
+function ensureConfigDir() {
+  if (!fs.existsSync(CONFIG_DIR)) {
+    fs.mkdirSync(CONFIG_DIR, { recursive: true, mode: 0o700 });
+  }
+}
+
+function migrateLegacyFile(legacyPath, newPath) {
+  if (fs.existsSync(legacyPath) && !fs.existsSync(newPath)) {
+    fs.renameSync(legacyPath, newPath);
+    console.log(`[DB] Migrated legacy file: ${legacyPath} → ${newPath}`);
+    return true;
+  }
+  return false;
+}
+
 export async function openDb() {
   if (configDb) return configDb;
+
+  ensureConfigDir();
+  migrateLegacyFile(LEGACY_DB_PATH, DB_PATH);
+  migrateLegacyFile(LEGACY_REQUESTS_DB_PATH, REQUESTS_DB_PATH);
 
   configDb = new JsonDb(DB_PATH, { encryptFn: encrypt, decryptFn: decrypt });
   await configDb.read(defaultConfigData);
@@ -58,7 +83,6 @@ export async function getEncryptedConfig(key) {
   }
   return value;
 }
-
 
 export async function setEncryptedConfig(key, value) {
   await openDb();

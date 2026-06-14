@@ -1,3 +1,4 @@
+// src/db/crypto.js
 import { randomBytes, createCipheriv, createDecipheriv, scryptSync } from 'crypto';
 
 const CRYPTO_VERSION = 'v1';
