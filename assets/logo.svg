@@ -94,6 +94,6 @@
   <g transform="translate(340, 20)">
     <rect x="0" y="0" width="40" height="18" rx="4" fill="url(#accentGrad)" opacity="0.15"/>
     <rect x="0" y="0" width="40" height="18" rx="4" fill="none" stroke="url(#accentGrad)" stroke-width="0.5" opacity="0.4"/>
-    <text x="20" y="12" text-anchor="middle" font-family="'SF Mono', monospace" font-size="8" font-weight="700" fill="#00F0FF" opacity="0.8">v3.0</text>
+    <text x="20" y="12" text-anchor="middle" font-family="'SF Mono', monospace" font-size="12" font-weight="700" fill="#00F0FF" opacity="0.8">v2.2.1</text>
   </g>
 </svg>

@@ -39,3 +39,6 @@ clientServer/bin/
 clie.js 
 rel.js
 conn.js
+
+# MD files
+SECURITY.md 

@@ -12,13 +12,32 @@ Expose any local server to the internet via a secure tunnel between your machine
 Browser → relay:443 ──── TCP ────→ client → localhost:3000
 ```
 
+# What's ApexTunnel?
+
+ApexTunnel is a lightweight tunneling application designed to expose your locally running applications to the internet. By generating secure, public URLs on the fly, it allows you to instantly share your progress with clients, teammates, and friends—all before you write a single line of deployment code.
+
+>️ **Note:** ApexTunnel is strictly a local proxy and sharing tool. It is **not** a production deployment tool or hosting service.
+
+# What's ApexTunnel used for?
+
+ApexTunnel is optimized for **small-to-medium applications** and shines brightest when testing **backend services**. It is perfect for:
+* Publicly testing APIs and webhooks (like Stripe or GitHub actions) locally.
+* Demoing full-stack or backend MVPs to clients without spinning up cloud infrastructure.
+* Speeding up microservice integration testing.
+
+
+
+
 ---
 
 ## Getting an Auth Token
 
-1. Go to [apextunnel.top](https://apextunnel.top) and create an account
+1. Go to [our website](https://apextunnel.top) and create an account.
 2. After signing in, navigate to your dashboard and copy your auth token
-3. Save it locally:
+3. Save it locally.
+
+> **Tip:** Alternatively, you can chat with our [Telegram Bot](https://t.me/apextunnel_bot?text=Help%20me%20setup%20my%20account) to get started instantly.
+
 
 ```bash
 apex authtoken <your_token>
@@ -99,18 +118,6 @@ Once connected:
 ## Inspector & Dashboard
 
 The inspector lets you view and replay live requests passing through the tunnel.
-
-### Set a dashboard password
-
-```bash
-apex pass mysecret123
-```
-
-### Update the password
-
-```bash
-apex new pass newsecret123
-```
 
 Once the tunnel is running, open the inspector from the terminal UI by pressing `I`. You'll be prompted for your password.
 
@@ -197,6 +204,11 @@ Try enabling TLS on the tunnel for a more stable connection:
 ```bash
 APEX_TLS=true apex http 3000
 ```
+
+###  Need Support?
+
+If you encounter any issues, please email me directly at [apextunnel.support@gmail.com](mailto:apextunnel.support@gmail.com). To help me get things sorted for you faster, please include a clear description of the problem. I'll get back to you shortly!
+
 
 ---
 
